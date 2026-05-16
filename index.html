@@ -11,7 +11,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:#070c18;color:#dde9ff;min-height:100vh;line-height:1.6}
 button{cursor:pointer;font-family:inherit;border:none}
-input{font-family:inherit}
+input{font-family:inherit;outline:none}
 input::placeholder{color:#2a3a5a}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
@@ -19,519 +19,301 @@ input::placeholder{color:#2a3a5a}
 .pop{animation:pop .45s cubic-bezier(.175,.885,.32,1.275) forwards}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:#1a2e50;border-radius:99px}
-#app{min-height:100vh}
 </style>
 </head>
 <body>
-<div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#3a4e72;font-size:14px">초기화 중...</div></div>
+<div id="app" style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:#3a4e72;font-size:14px">초기화 중...</div>
 <script>
-// ── Firebase 초기화 (첨부파일과 동일한 구조) ──
-const firebaseConfig = {
-  apiKey: "AIzaSyDkUnOlSeuy7wPln2L4yu9ZHJJ45-q_QBs",
-  authDomain: "vffullcaresystem.firebaseapp.com",
-  projectId: "vffullcaresystem",
-  storageBucket: "vffullcaresystem.firebasestorage.app",
-  messagingSenderId: "744998625393",
-  appId: "1:744998625393:web:1204ffc2ced9031ce0bbd0",
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const googleProvider = new firebase.auth.GoogleAuthProvider();
-const ADMIN_PW = 'vf2025admin';
+firebase.initializeApp({
+  apiKey:"AIzaSyDkUnOlSeuy7wPln2L4yu9ZHJJ45-q_QBs",
+  authDomain:"vffullcaresystem.firebaseapp.com",
+  projectId:"vffullcaresystem",
+  storageBucket:"vffullcaresystem.firebasestorage.app",
+  messagingSenderId:"744998625393",
+  appId:"1:744998625393:web:1204ffc2ced9031ce0bbd0"
+});
+var auth=firebase.auth();
+var gProvider=new firebase.auth.GoogleAuthProvider();
+var ADMIN_PW='vf2025admin';
+var OPTS=['①','②','③','④','⑤','⑥','⑦'];
 
-// ── TOPICS 데이터 ──
-const TOPICS = [
-  {
-    id:1, part:"PART 1", title:"메디컬 편입 시험에 대한\n3가지 핵심 인식.",
-    subtitle:"공부 방향을 결정짓는 출발점",
-    color:"#f5a623", darkColor:"#c17a0a", icon:"🎯", passScore:80,
-    slides:[
-      { tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문", title:"핵심 1. 2~3개 틀리거나 거의 다 맞아야 합격하는 시험이 아니다.", points:[
-        "왜 고난이도나 오답률 높은 문항보다 정답률 높은 문제를 틀리지 않도록 학습해야하는가?",
-        "기본기는 쉬운 문제를 말하는 것이 아니다. 기본기의 정확한 정의는 무엇인가?",
-        "필기고사는 무엇이 나올지 몰라 지엽적인 것까지 모든 것을 대비해야한다. 는 말이 참이 되기 위해 생략되어있는 전제는 무엇인가?",
-      ]},
-      { tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문", title:"핵심 2. 생물과 화학은 공부법이 정반대다", points:[
-        "생물은 (    )를 요구하는 시험이고, 화학은 (    )를 요구하는 시험이다.",
-        "화학을 잘하기 위해서는 이론 학습과 문제 풀이 중에 무엇이 더 중요한가? 그리고 그 이유는 무엇인가?",
-        "생물을 잘하기 위해서는 이론 학습과 문제 풀이 중에 무엇이 더 중요한가? 그리고 그 이유는 무엇인가?",
-        "유기화학은 이론 학습과 문제 풀이를 어떻게 해야하는가? 어떤 문제를 많이 풀어야하는가?",
-      ]},
-      { tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문", title:"핵심 3. 합격을 결정짓는 과목은 화학이다", points:[
-        "화학을 잘해야 합격하는 이유는 무엇인가?",
-        "생물은 전공자가 유리하지만, 화학은 전공자가 유리하지 않은 이유는 무엇인가?",
-        "시험이 어려울 수록 기본기가 튼튼한 사람이 합격하는 이유는 무엇인가?",
-      ]},
-    ],
-    questions:[
-      { type:"multi", text:"다음 중 메디컬 편입 시험의 특성으로 틀린 것을 모두 고르시오.", options:["거의 모든 문제를 맞혀야 합격할 수 있다.","오답률 높은 고난이도 문제보다 정답률 높은 기본기 문제를 틀리지 않는 것이 핵심이다.","기본기란 자주 출제되는 주제, 이미 여러 번 출제된 주제, 교수님들이 중요하다고 생각하는 내용을 말한다.","모든 것을 대비하는 공부가 합격에 가장 효율적이다.","지엽적인 것까지 모두 대비해야 합격선을 넘을 수 있다."], answer:[0,3,4] },
-      { type:"multi", underline:"항상 참이 아닌(거짓) 이유", text:'"필기고사는 무엇이 나올지 몰라 모든 것을 대비해야 한다"는 주장이 실제 편입 시험에서 항상 참이 아닌(거짓) 이유로 옳은 것을 모두 고르시오.', options:["합격을 위해 2~3개 정도만 틀리거나 거의 다 맞아야만 하는 시험이라면 참이 될 수 있지만, 실제 편입 시험은 거의 다맞아야 하는 시험이 아니기 때문이다.","시험의 난이도가 높고 어려워질수록, 기본기보다는 지엽적인 부분까지 모두 철저히 대비해야만 합격 가능성이 높아지기 때문이다.","26 우석대는 컷이 2~3개 수준으로 거의 다 맞아야했던 쉬운 시험이었지만, 거꾸로 잘생각해보면 시험이 쉽다는 것은 지엽적인 내용이 비중있게 출제되지 않고, 기본기와 핵심적인 문제 중심으로 출제하였다는 것을 의미하기 때문이다.","모든 것을 대비하려는 공부 방식은 오히려 과목별 학습 밸런스를 붕괴시키고 합격까지 걸리는 시간을 늘려 실패 가능성을 높이기 때문이다.","편입 시험에 단기간 성공하기 위해서는 전체적인 큰 그림과 전략보다는 지엽적인 문제에 대한 세부적인 암기가 더 중요하게 작용하기 때문이다."], answer:[0,2,3] },
-      { type:"multi", text:"생물, 화학, 유기화학 학습법에 대한 설명으로 틀린 것을 모두 고르시오.", options:["생물은 지식을 요구하고, 화학은 숙련도를 요구하는 시험이다.","화학 공부에서 문제가 안 풀리면 이론 위주로 다시 공부해야 한다.","생물은 이론을 여러 번 읽고 질 좋은 문제로 이론에 복귀하는 것이 핵심이다.","유기화학은 이론과 문제풀이를 함께 병행하며 기본 문항 위주로 풀어야 한다.","화학은 이론을 충분히 익힌 후 문제를 풀어야 한다.","생물은 이론보다는 문제를 많이 풀어야 성적이 오른다.","유기화학은 이해보다 암기를 해야한다.","생물은 무엇이 나올지 모르니 지엽적인 내용까지 다 공부해야한다."], answer:[1,4,5,6,7] },
-      { type:"multi", text:"화학이 합격을 결정짓는 핵심 과목인 이유로 옳은 것을 모두 고르시오.", options:["일반화학은 숙련도를 요구하는 시험이라 올바른 방향으로 꾸준히 학습하지 않으면 일반화학을 잘하는 사람도 성적 편차가 심해지는 과목이다. 그래서 올바른 학습을 꾸준히 하면 경쟁력을 갖기 때문이다.","일반화학은 풀이를 암기하면 해결되기 때문이다.","유기화학은 쉽게 출제되기 때문에 10월 정도부터 벼락치기로 공부해도 되기 때문이다.","유기화학 비중이 점점 높아지고 있고, 유기화학2 까지 제대로 공부해서 시험보는 경쟁자가 많지 않아서 유기화학을 잘하면 경쟁력을 갖기 때문이다."], answer:[0,3] },
-      { type:"multi", text:"기본기의 올바른 정의에 대해 옳은 것을 모두 고르시오.", options:["난이도가 낮고 쉬운 문제만을 의미한다.","기본서에서 다루는 내용만 기본기이다.","기본기는 문제의 난이도와는 별개의 개념이며, 기출에서 자주 출제되는 주제라면 난이도가 어려워도 기본기에 해당할 수 있다.","기본기는 경쟁자들이 대부분 맞히는 문제이므로 시험장에서 절대 틀려서는 안 되며, 이 기본기 영역에서 점수가 새지 않도록 방어하는 것이 필수적이다.","MDEET, PEET, 변리사, 편입 기출 등과 같이 이미 으레 자주 출제되어 왔던 주제나 문제들을 의미한다."], answer:[2,3,4] },
-      { type:"multi", text:"시험이 어려울수록 기본기가 튼튼한 사람이 합격하는 이유로 옳은 것을 모두 고르시오.", options:["실제 편입 시험은 모든 문제를 다 맞혀야 합격하는 것이 아니기 때문에, 오답률이 높은 고난이도 문제는 대부분 틀리는 문제를 의미해서 내가 틀려도 합격에 큰 영향이 없으나, 경쟁자들이 대부분 맞히는 '정답률이 높은 문제(기본기)'에서 점수를 잃게 되면 합격에 큰 영향을 주기 때문이다.","생물과 같은 지식 위주의 과목은 시험이 어렵게 출제될 경우 수험생들이 다 함께 점수가 하락하는 경향이 있어, 결국 흔들리지 않고 확보해 둔 기본기 점수가 당락을 가르는 기반이 되기 때문이다.","본고사에서 출제되는 '기본기' 문제는 난이도가 낮고 쉬운 문제만을 의미하므로, 기본기가 튼튼하면 본고사 직전에는 기본기보다 오답률이 높은 고난도 심화 문제, 지엽적인 내용에 더 시간을 할애할 수 있기 때문이다.","시험 난이도가 높아질수록 지엽적인 내용의 출제가 늘어나므로, 남들이 틀리는 지엽적이고 생소한 문제까지 완벽하게 대비하고 맞혀야만 경쟁자들과 격차를 벌릴 수 있기 때문이다.","다 맞아야 한다는 잘못된 전제로 남도 틀리고 나도 틀리는 문제에 시간을 낭비하는 대신, 반드시 맞혀야 하는 기본기 문제를 절대 틀리지 않고, 심화문제는 최대한 맞춰서 정답수를 최대로 끌어올리는 것이 올바른 방향성이기 때문이다."], answer:[0,1,4] },
-      { type:"multi", text:'생물은 무작정 많이 푸는 것보다는 "질 좋은 문제" 위주로 풀면서 문제 base로 이론을 다시 반복 학습해야한다. 여기서 "질 좋은 문제"가 의미하는 것으로 옳은 것을 모두 고르시오.', options:["공개 기출(중앙대, 경희대)","MDEET, PEET 기출","실제 메디컬 편입 기출","사설 문제지(학원, 개인 판매 문제 등)","어려운 전공 문제지들"], answer:[0,1,2] },
-    ],
-  },
-  {
-    id:2, part:"PART 2", title:"과목별 학습법", subtitle:"생물 · 화학 · 유기화학",
-    color:"#3b82f6", darkColor:"#1d4ed8", icon:"📚", passScore:80,
-    slides:[
-      { tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문", title:"생물 학습법", points:["처음부터 꼼꼼히 암기하는 학습이 좋지 않은 이유는 무엇인가?","암기를 본격적으로 해야하는 시기는 언제부터 인가?","생물 오개념이 생기는 2가지 이유는 무엇이고, 이를 보정하기 위해서 어떻게 학습해야하는가?","기본서를 왜 읽어야하고, 어떻게 읽어야 하는가?","단권화는 언제부터 시작해야 하는가? 그리고 목적은 무엇인가?"] },
-      { tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문", title:"화학 학습법", points:["박인규T 커리큘럼(1500제, 2000제, 기출올인원)에서 가장 중요한 커리큘럼은 무엇인가?","APS 학습법을 체득해야하는 이유는 무엇이고, 무엇을 체득하기 위해서인가?","화학은 \"빠르고 + 정확히\" 라는 2마리 토끼를 잡아야한다. 이를 위해 \"빠르게\" 와 \"정확하게\" 중에 무엇부터 잡아야하는가? 그 이유는 무엇인가?","2000제를 수강할 때 어떤 코드번호 순서로 수강해야하는가? 그리고 복습은 어떻게 해야하는가?","문제를 풀다 개념이 헷갈리거나 풀어도 여전히 개운하지 않을 때는 어떻게 해야하는가?"] },
-      { tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문", title:"유기화학 학습법", points:["유기화학은 강의보다 왜 기본서 중심으로 학습해야하는가?","1회독, 2회독 완료 시 각 단계에서 반드시 깨달아야 할 핵심 인식은?","유기화학을 매일 최소 몇시간씩 공부해야하는가? 유기화학을 잘해두면 왜 효자과목이 되는가?","1회독 때 기본서의 어떤 문제만 풀면서 23단원 아민까지 쭉 나아가야하는가? 그 다음 2회독 때 어떤 문제를 풀어야하는가?","약사랑 유기화학 활용 방법은 무엇인가?"] },
-    ],
-    questions:[
-      { type:"multi", text:"생물 학습의 핵심 원칙으로 옳은 것을 모두 고르시오.", options:["강사와 기본서 내용이 다르면 무조건 기본서를 따른다.","좋은 강사를 선택하는 것이 기본서보다 더 중요하다.","기본서를 함께 읽어야하는 이유는 강의만 보면 반드시 오개념이 생기기 때문에 이를 보정하기 위한 유일한 방법이기 때문이다.","동일한 문제는 출제되지 않기 때문에, 질 좋은 문제 위주로 풀면서 문제에서 다뤄진 주제와 내용에 대해 이론서로 돌아가 관련 이론을 넓게 다시 공부해줘야한다.","단권화는 6월부터 시작하는 것이 좋다."], answer:[0,2,3] },
-      { type:"multi", text:"생물 교재 및 기출 학습에 대한 내용으로 틀린 것을 모두 고르시오.", options:["캠벨 생명과학 12판은 내용에 오류가 없고 그림이 좋다.","식생분진은 캠벨 12판, 생명:생물의 과학(꿀벌책) 2권만 제대로 학습해도 충분하다.","8월까지는 OX 문제 위주로 푸는 것이 생물 이론과 개념을 익히는 데 더 도움이 되며, 본고사 직전에도 5지선다보다는 OX로 개념을 다시 점검하는 것이 좋다.","중앙대/경희대 기출부터 풀어야하는 이유는 난이도가 쉽기 때문이다.","박선우 통합이론은 1권+3권 중심으로 활용한다."], answer:[3] },
-      { type:"multi", text:"화학 학습법으로 옳은 것을 모두 고르시오.", options:["빠르게 푸는 것이 정확히 푸는 것보다 중요하다.","2000제 끝날때 까지는 시간재고 푸는 것이 좋지 않다.","화학의 학습 목표는 '박인규T 사고의 과정'을 배우는 것을 목표로 해야한다.","풀었던 문제 or 맞았던 문제는 다시 풀지 않아도 된다.","기본기 문제 보다는 어려운 문제 위주로 풀어야 한다.","시간재고 푸는 것은 기출올인원 단계부터 풀어야한다.","실력이 좋아도 성적은 안좋을 수 있다. 왜냐하면 실력을 성적으로 '연결하는 과정'이 중요하며, 이것은 실전 연습을 많이 해야하기 때문이다."], answer:[1,2,5,6] },
-      { type:"multi", text:"유기화학 학습법으로 틀린 것을 모두 고르시오.", options:["스미스 유기화학 기본서로 공부해야하는 이유는 초심자도 쉽게 이해할 수 있도록 설명이 쉽고 거의 모든 반응을 커버하기 때문이다.","1회독부터 답 없는 예제까지 모두 풀며 꼼꼼하게 학습한다.","2회독 완료 시 '반응의 원리는 모든 단원이 같고 다양성은 작용기·시약 때문'임을 체득해야 한다.","유기화학은 10월부터 시작해도 벼락치기로 충분하다.","유기화학은 이해보다는 암기해야하는 과목이다."], answer:[1,3,4] },
-    ],
-  },
-  {
-    id:3, part:"PART 3", title:"학습 및 생활 관리", subtitle:"합격까지 지속 가능한 루틴 만들기",
-    color:"#f59e0b", darkColor:"#b45309", icon:"🗓️", passScore:80,
-    slides:[
-      { tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문", title:"학습 및 생활 관리", points:["매일 전 과목을 고르게 공부해야하는 이유는 무엇인가?","매일 학습시간은 최소 몇 시간이 확보되어야 하는가?","이상적인 매일 과목별 학습 시간은 어떻게 구성되어야 하는가?","같은 강의, 같은 자료로 공부해도 왜 사람마다 결과는 다른가?"] },
-    ],
-    questions:[
-      { type:"mcq5", text:"매일 전 과목을 균형있게 공부해야 하는 가장 핵심적인 이유는?", options:["하루에 한 과목만 집중하면 깊이 있는 학습이 가능하기 때문이다.","생물, 화학, 유기화학은 각각 성격이 달라 매일 접하지 않으면 감각이 떨어지고 실력이 유지되지 않기 때문이다.","시험 당일 모든 과목이 동시에 출제되므로 당일 컨디션 조절을 위해서이다.","과목별로 교재가 달라 매일 바꿔가며 펼쳐봐야 하기 때문이다."], answer:1 },
-      { type:"mcq5", text:"합격을 위한 매일 최소 학습 시간으로 옳은 것은?", options:["4시간","6시간","8시간","10시간 이상","12시간 이상"], answer:3 },
-      { type:"mcq5", text:"이상적인 매일 과목별 학습 시간 구성으로 가장 적절한 것은?", options:["생물 4시간, 화학 2시간, 유기화학 2시간","화학 4시간, 생물 4시간, 유기화학 0시간","생물 4시간, 화학 4시간, 유기화학 2~3시간","생물 3시간, 화학 3시간, 유기화학 2시간","과목 구분 없이 총 8시간 이상 자유롭게 배분한다."], answer:2 },
-      { type:"mcq5", underline:"자신의 성향을 알고 보완하여 공부하느냐", text:"같은 강의, 같은 자료로 공부해도 사람마다 결과가 다른 이유로 가장 적절한 것은?", options:["타고난 머리의 차이가 결과를 결정하기 때문이다.","강의 수강 횟수의 차이가 결과를 결정하기 때문이다.","학습 자료의 질 차이가 결과를 결정하기 때문이다.","학습 태도, 복습 방식, 자기 관리 등 '자신의 성향을 알고 보완하여 공부하느냐'의 차이가 결과를 결정하기 때문이다.","공부 장소와 환경의 차이가 결과를 결정하기 때문이다."], answer:3 },
-    ],
-  },
+var TOPICS=[
+{id:1,part:"PART 1",title:"메디컬 편입 시험에 대한\n3가지 핵심 인식.",subtitle:"공부 방향을 결정짓는 출발점",color:"#f5a623",dark:"#c17a0a",icon:"🎯",pass:80,
+ slides:[
+  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"핵심 1. 2~3개 틀리거나 거의 다 맞아야 합격하는 시험이 아니다.",yt:"FJDxFPUBtec",pts:["왜 고난이도나 오답률 높은 문항보다 정답률 높은 문제를 틀리지 않도록 학습해야하는가?","기본기는 쉬운 문제를 말하는 것이 아니다. 기본기의 정확한 정의는 무엇인가?","필기고사는 무엇이 나올지 몰라 지엽적인 것까지 모든 것을 대비해야한다 는 말이 참이 되기 위해 생략되어있는 전제는 무엇인가?"]},
+  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"핵심 2. 생물과 화학은 공부법이 정반대다",pts:["생물은 (    )를 요구하는 시험이고, 화학은 (    )를 요구하는 시험이다.","화학을 잘하기 위해서는 이론 학습과 문제 풀이 중에 무엇이 더 중요한가? 그리고 그 이유는 무엇인가?","생물을 잘하기 위해서는 이론 학습과 문제 풀이 중에 무엇이 더 중요한가? 그리고 그 이유는 무엇인가?","유기화학은 이론 학습과 문제 풀이를 어떻게 해야하는가? 어떤 문제를 많이 풀어야하는가?"]},
+  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"핵심 3. 합격을 결정짓는 과목은 화학이다",pts:["화학을 잘해야 합격하는 이유는 무엇인가?","생물은 전공자가 유리하지만, 화학은 전공자가 유리하지 않은 이유는 무엇인가?","시험이 어려울 수록 기본기가 튼튼한 사람이 합격하는 이유는 무엇인가?"]}
+ ],
+ qs:[
+  {t:"multi",txt:"다음 중 메디컬 편입 시험의 특성으로 틀린 것을 모두 고르시오.",opts:["거의 모든 문제를 맞혀야 합격할 수 있다.","오답률 높은 고난이도 문제보다 정답률 높은 기본기 문제를 틀리지 않는 것이 핵심이다.","기본기란 자주 출제되는 주제, 이미 여러 번 출제된 주제, 교수님들이 중요하다고 생각하는 내용을 말한다.","모든 것을 대비하는 공부가 합격에 가장 효율적이다.","지엽적인 것까지 모두 대비해야 합격선을 넘을 수 있다."],ans:[0,3,4]},
+  {t:"multi",ul:"항상 참이 아닌(거짓) 이유",txt:"필기고사는 무엇이 나올지 몰라 모든 것을 대비해야 한다는 주장이 실제 편입 시험에서 항상 참이 아닌(거짓) 이유로 옳은 것을 모두 고르시오.",opts:["합격을 위해 2~3개 정도만 틀리거나 거의 다 맞아야만 하는 시험이라면 참이 될 수 있지만, 실제 편입 시험은 거의 다맞아야 하는 시험이 아니기 때문이다.","시험의 난이도가 높고 어려워질수록, 기본기보다는 지엽적인 부분까지 모두 철저히 대비해야만 합격 가능성이 높아지기 때문이다.","26 우석대는 컷이 2~3개 수준으로 거의 다 맞아야했던 쉬운 시험이었지만, 거꾸로 잘생각해보면 시험이 쉽다는 것은 지엽적인 내용이 비중있게 출제되지 않고, 기본기와 핵심적인 문제 중심으로 출제하였다는 것을 의미하기 때문이다.","모든 것을 대비하려는 공부 방식은 오히려 과목별 학습 밸런스를 붕괴시키고 합격까지 걸리는 시간을 늘려 실패 가능성을 높이기 때문이다.","편입 시험에 단기간 성공하기 위해서는 전체적인 큰 그림과 전략보다는 지엽적인 문제에 대한 세부적인 암기가 더 중요하게 작용하기 때문이다."],ans:[0,2,3]},
+  {t:"multi",txt:"생물, 화학, 유기화학 학습법에 대한 설명으로 틀린 것을 모두 고르시오.",opts:["생물은 지식을 요구하고, 화학은 숙련도를 요구하는 시험이다.","화학 공부에서 문제가 안 풀리면 이론 위주로 다시 공부해야 한다.","생물은 이론을 여러 번 읽고 질 좋은 문제로 이론에 복귀하는 것이 핵심이다.","유기화학은 이론과 문제풀이를 함께 병행하며 기본 문항 위주로 풀어야 한다.","화학은 이론을 충분히 익힌 후 문제를 풀어야 한다.","생물은 이론보다는 문제를 많이 풀어야 성적이 오른다.","유기화학은 이해보다 암기를 해야한다.","생물은 무엇이 나올지 모르니 지엽적인 내용까지 다 공부해야한다."],ans:[1,4,5,6,7]},
+  {t:"multi",txt:"화학이 합격을 결정짓는 핵심 과목인 이유로 옳은 것을 모두 고르시오.",opts:["일반화학은 숙련도를 요구하는 시험이라 올바른 방향으로 꾸준히 학습하지 않으면 일반화학을 잘하는 사람도 성적 편차가 심해지는 과목이다. 그래서 올바른 학습을 꾸준히 하면 경쟁력을 갖기 때문이다.","일반화학은 풀이를 암기하면 해결되기 때문이다.","유기화학은 쉽게 출제되기 때문에 10월 정도부터 벼락치기로 공부해도 되기 때문이다.","유기화학 비중이 점점 높아지고 있고, 유기화학2 까지 제대로 공부해서 시험보는 경쟁자가 많지 않아서 유기화학을 잘하면 경쟁력을 갖기 때문이다."],ans:[0,3]},
+  {t:"multi",txt:"기본기의 올바른 정의에 대해 옳은 것을 모두 고르시오.",opts:["난이도가 낮고 쉬운 문제만을 의미한다.","기본서에서 다루는 내용만 기본기이다.","기본기는 문제의 난이도와는 별개의 개념이며, 기출에서 자주 출제되는 주제라면 난이도가 어려워도 기본기에 해당할 수 있다.","기본기는 경쟁자들이 대부분 맞히는 문제이므로 시험장에서 절대 틀려서는 안 되며, 이 기본기 영역에서 점수가 새지 않도록 방어하는 것이 필수적이다.","MDEET, PEET, 변리사, 편입 기출 등과 같이 이미 으레 자주 출제되어 왔던 주제나 문제들을 의미한다."],ans:[2,3,4]},
+  {t:"multi",txt:"시험이 어려울수록 기본기가 튼튼한 사람이 합격하는 이유로 옳은 것을 모두 고르시오.",opts:["실제 편입 시험은 모든 문제를 다 맞혀야 합격하는 것이 아니기 때문에, 오답률이 높은 고난이도 문제는 대부분 틀리는 문제를 의미해서 내가 틀려도 합격에 큰 영향이 없으나, 경쟁자들이 대부분 맞히는 정답률이 높은 문제(기본기)에서 점수를 잃게 되면 합격에 큰 영향을 주기 때문이다.","생물과 같은 지식 위주의 과목은 시험이 어렵게 출제될 경우 수험생들이 다 함께 점수가 하락하는 경향이 있어, 결국 흔들리지 않고 확보해 둔 기본기 점수가 당락을 가르는 기반이 되기 때문이다.","본고사에서 출제되는 기본기 문제는 난이도가 낮고 쉬운 문제만을 의미하므로, 기본기가 튼튼하면 본고사 직전에는 기본기보다 오답률이 높은 고난도 심화 문제, 지엽적인 내용에 더 시간을 할애할 수 있기 때문이다.","시험 난이도가 높아질수록 지엽적인 내용의 출제가 늘어나므로, 남들이 틀리는 지엽적이고 생소한 문제까지 완벽하게 대비하고 맞혀야만 경쟁자들과 격차를 벌릴 수 있기 때문이다.","다 맞아야 한다는 잘못된 전제로 남도 틀리고 나도 틀리는 문제에 시간을 낭비하는 대신, 반드시 맞혀야 하는 기본기 문제를 절대 틀리지 않고, 심화문제는 최대한 맞춰서 정답수를 최대로 끌어올리는 것이 올바른 방향성이기 때문이다."],ans:[0,1,4]},
+  {t:"multi",txt:"생물은 무작정 많이 푸는 것보다는 질 좋은 문제 위주로 풀면서 문제 base로 이론을 다시 반복 학습해야한다. 여기서 질 좋은 문제가 의미하는 것으로 옳은 것을 모두 고르시오.",opts:["공개 기출(중앙대, 경희대)","MDEET, PEET 기출","실제 메디컬 편입 기출","사설 문제지(학원, 개인 판매 문제 등)","어려운 전공 문제지들"],ans:[0,1,2]}
+ ]},
+{id:2,part:"PART 2",title:"과목별 학습법",subtitle:"생물 · 화학 · 유기화학",color:"#3b82f6",dark:"#1d4ed8",icon:"📚",pass:80,
+ slides:[
+  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"생물 학습법",pts:["처음부터 꼼꼼히 암기하는 학습이 좋지 않은 이유는 무엇인가?","암기를 본격적으로 해야하는 시기는 언제부터 인가?","생물 오개념이 생기는 2가지 이유는 무엇이고, 이를 보정하기 위해서 어떻게 학습해야하는가?","기본서를 왜 읽어야하고, 어떻게 읽어야 하는가?","단권화는 언제부터 시작해야 하는가? 그리고 목적은 무엇인가?"]},
+  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"화학 학습법",pts:["박인규T 커리큘럼(1500제, 2000제, 기출올인원)에서 가장 중요한 커리큘럼은 무엇인가?","APS 학습법을 체득해야하는 이유는 무엇이고, 무엇을 체득하기 위해서인가?","화학은 빠르고 + 정확히 라는 2마리 토끼를 잡아야한다. 빠르게 와 정확하게 중에 무엇부터 잡아야하는가?","2000제를 수강할 때 어떤 코드번호 순서로 수강해야하는가? 그리고 복습은 어떻게 해야하는가?","문제를 풀다 개념이 헷갈리거나 풀어도 여전히 개운하지 않을 때는 어떻게 해야하는가?"]},
+  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"유기화학 학습법",pts:["유기화학은 강의보다 왜 기본서 중심으로 학습해야하는가?","1회독, 2회독 완료 시 각 단계에서 반드시 깨달아야 할 핵심 인식은?","유기화학을 매일 최소 몇시간씩 공부해야하는가? 유기화학을 잘해두면 왜 효자과목이 되는가?","1회독 때 기본서의 어떤 문제만 풀면서 23단원 아민까지 쭉 나아가야하는가? 그 다음 2회독 때 어떤 문제를 풀어야하는가?","약사랑 유기화학 활용 방법은 무엇인가?"]}
+ ],
+ qs:[
+  {t:"multi",txt:"생물 학습의 핵심 원칙으로 옳은 것을 모두 고르시오.",opts:["강사와 기본서 내용이 다르면 무조건 기본서를 따른다.","좋은 강사를 선택하는 것이 기본서보다 더 중요하다.","기본서를 함께 읽어야하는 이유는 강의만 보면 반드시 오개념이 생기기 때문에 이를 보정하기 위한 유일한 방법이기 때문이다.","동일한 문제는 출제되지 않기 때문에, 질 좋은 문제 위주로 풀면서 문제에서 다뤄진 주제와 내용에 대해 이론서로 돌아가 관련 이론을 넓게 다시 공부해줘야한다.","단권화는 6월부터 시작하는 것이 좋다."],ans:[0,2,3]},
+  {t:"multi",txt:"생물 교재 및 기출 학습에 대한 내용으로 틀린 것을 모두 고르시오.",opts:["캠벨 생명과학 12판은 내용에 오류가 없고 그림이 좋다.","식생분진은 캠벨 12판, 생명:생물의 과학(꿀벌책) 2권만 제대로 학습해도 충분하다.","8월까지는 OX 문제 위주로 푸는 것이 생물 이론과 개념을 익히는 데 더 도움이 되며, 본고사 직전에도 5지선다보다는 OX로 개념을 다시 점검하는 것이 좋다.","중앙대/경희대 기출부터 풀어야하는 이유는 난이도가 쉽기 때문이다.","박선우 통합이론은 1권+3권 중심으로 활용한다."],ans:[3]},
+  {t:"multi",txt:"화학 학습법으로 옳은 것을 모두 고르시오.",opts:["빠르게 푸는 것이 정확히 푸는 것보다 중요하다.","2000제 끝날때 까지는 시간재고 푸는 것이 좋지 않다.","화학의 학습 목표는 박인규T 사고의 과정을 배우는 것을 목표로 해야한다.","풀었던 문제 or 맞았던 문제는 다시 풀지 않아도 된다.","기본기 문제 보다는 어려운 문제 위주로 풀어야 한다.","시간재고 푸는 것은 기출올인원 단계부터 풀어야한다.","실력이 좋아도 성적은 안좋을 수 있다. 왜냐하면 실력을 성적으로 연결하는 과정이 중요하며, 이것은 실전 연습을 많이 해야하기 때문이다."],ans:[1,2,5,6]},
+  {t:"multi",txt:"유기화학 학습법으로 틀린 것을 모두 고르시오.",opts:["스미스 유기화학 기본서로 공부해야하는 이유는 초심자도 쉽게 이해할 수 있도록 설명이 쉽고 거의 모든 반응을 커버하기 때문이다.","1회독부터 답 없는 예제까지 모두 풀며 꼼꼼하게 학습한다.","2회독 완료 시 반응의 원리는 모든 단원이 같고 다양성은 작용기시약 때문임을 체득해야 한다.","유기화학은 10월부터 시작해도 벼락치기로 충분하다.","유기화학은 이해보다는 암기해야하는 과목이다."],ans:[1,3,4]}
+ ]},
+{id:3,part:"PART 3",title:"학습 및 생활 관리",subtitle:"합격까지 지속 가능한 루틴 만들기",color:"#f59e0b",dark:"#b45309",icon:"🗓️",pass:80,
+ slides:[
+  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"학습 및 생활 관리",pts:["매일 전 과목을 고르게 공부해야하는 이유는 무엇인가?","매일 학습시간은 최소 몇 시간이 확보되어야 하는가?","이상적인 매일 과목별 학습 시간은 어떻게 구성되어야 하는가?","같은 강의, 같은 자료로 공부해도 왜 사람마다 결과는 다른가?"]}
+ ],
+ qs:[
+  {t:"mcq5",txt:"매일 전 과목을 균형있게 공부해야 하는 가장 핵심적인 이유는?",opts:["하루에 한 과목만 집중하면 깊이 있는 학습이 가능하기 때문이다.","생물, 화학, 유기화학은 각각 성격이 달라 매일 접하지 않으면 감각이 떨어지고 실력이 유지되지 않기 때문이다.","시험 당일 모든 과목이 동시에 출제되므로 당일 컨디션 조절을 위해서이다.","과목별로 교재가 달라 매일 바꿔가며 펼쳐봐야 하기 때문이다."],ans:1},
+  {t:"mcq5",txt:"합격을 위한 매일 최소 학습 시간으로 옳은 것은?",opts:["4시간","6시간","8시간","10시간 이상","12시간 이상"],ans:3},
+  {t:"mcq5",txt:"이상적인 매일 과목별 학습 시간 구성으로 가장 적절한 것은?",opts:["생물 4시간, 화학 2시간, 유기화학 2시간","화학 4시간, 생물 4시간, 유기화학 0시간","생물 4시간, 화학 4시간, 유기화학 2~3시간","생물 3시간, 화학 3시간, 유기화학 2시간","과목 구분 없이 총 8시간 이상 자유롭게 배분한다."],ans:2},
+  {t:"mcq5",ul:"자신의 성향을 알고 보완하여 공부하느냐",txt:"같은 강의, 같은 자료로 공부해도 사람마다 결과가 다른 이유로 가장 적절한 것은?",opts:["타고난 머리의 차이가 결과를 결정하기 때문이다.","강의 수강 횟수의 차이가 결과를 결정하기 때문이다.","학습 자료의 질 차이가 결과를 결정하기 때문이다.","학습 태도, 복습 방식, 자기 관리 등 자신의 성향을 알고 보완하여 공부하느냐의 차이가 결과를 결정하기 때문이다.","공부 장소와 환경의 차이가 결과를 결정하기 때문이다."],ans:3}
+ ]}
 ];
 
-// ── 상태 ──
-const S = {
-  screen:'login', subScreen:'slides',
-  topicId:null, slideIdx:0, qIdx:0,
-  answers:{}, submitted:false, results:null,
-  unlocked:[1], passed:{}, confirmed:false,
-  loginMsg:'', adminPw:'', adminLoggedIn:false,
-  adminTab:'student', allowedEmails:[],
-  newEmail:'', adminMsg:'',
+var S={
+  screen:'login',sub:'slides',tid:null,si:0,qi:0,
+  ans:{},submitted:false,results:null,
+  unlocked:[1],passed:{},confirmed:false,
+  loginMsg:'',adminPw:'',adminOk:false,
+  adminTab:'student',emails:[],newEmail:'',adminMsg:''
 };
-function set(obj){ Object.assign(S,obj); render(); }
+function set(o){for(var k in o)S[k]=o[k];render();}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function getTopic(){return TOPICS.filter(function(x){return x.id===S.tid;})[0];}
 
-// ── 스토리지 (localStorage) ──
-async function loadEmails(){
-  try{ const r=localStorage.getItem('vf_allowed_emails'); if(r) S.allowedEmails=JSON.parse(r); }catch(e){ S.allowedEmails=[]; }
-}
-async function saveEmails(list){
-  S.allowedEmails=list;
-  localStorage.setItem('vf_allowed_emails',JSON.stringify(list));
-}
+function loadEmails(){try{var r=localStorage.getItem('vf_e');if(r)S.emails=JSON.parse(r);}catch(e){S.emails=[];}}
+function saveEmails(l){S.emails=l;try{localStorage.setItem('vf_e',JSON.stringify(l));}catch(e){}}
 
-// ── Firebase Auth (첨부파일과 동일) ──
-auth.onAuthStateChanged(async user=>{
-  await loadEmails();
+auth.onAuthStateChanged(function(user){
   if(user){
-    const allowed=S.allowedEmails.map(e=>e.toLowerCase());
-    if(allowed.includes(user.email.toLowerCase())){
-      S.screen='home'; S.loginMsg='';
-    } else {
-      auth.signOut();
-      S.loginMsg='등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';
-    }
+    var cached=sessionStorage.getItem('vf_ok');
+    if(cached===user.email.toLowerCase()){S.screen='home';render();return;}
+    loadEmails();
+    var found=false;
+    for(var i=0;i<S.emails.length;i++){if(S.emails[i].toLowerCase()===user.email.toLowerCase()){found=true;break;}}
+    if(found){sessionStorage.setItem('vf_ok',user.email.toLowerCase());S.screen='home';S.loginMsg='';}
+    else{auth.signOut();S.loginMsg='등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';}
   } else {
+    sessionStorage.removeItem('vf_ok');
     S.screen='login';
   }
   render();
 });
 
-function googleLogin(){
-  S.loginMsg='';
-  auth.signInWithPopup(googleProvider).catch(e=>{
-    if(e.code!=='auth/popup-closed-by-user') S.loginMsg='로그인 오류: '+e.message;
+function gLogin(){
+  S.loginMsg='';render();
+  auth.signInWithPopup(gProvider).catch(function(e){
+    if(e.code!=='auth/popup-closed-by-user')S.loginMsg='로그인 오류: '+e.message;
     render();
   });
 }
-function logout(){ auth.signOut(); S.screen='login'; S.unlocked=[1]; S.passed={}; render(); }
-
-// ── 유틸 ──
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const OPTS=['①','②','③','④','⑤','⑥','⑦'];
-function highlightUnderline(text, underlineTarget){
-  if(!underlineTarget) return esc(text);
-  const t=text.includes('틀린')?'틀린': (underlineTarget||'틀린');
-  const target = underlineTarget || t;
-  return esc(text).replace(esc(target),`<span style="text-decoration:underline;text-underline-offset:3px">${esc(target)}</span>`);
+function logout(){auth.signOut();S.unlocked=[1];S.passed={};}
+function doAdminLogin(){if(S.adminPw===ADMIN_PW)set({adminOk:true,loginMsg:''});else set({loginMsg:'비밀번호가 틀렸습니다.'});}
+function addEmail(){
+  var e=(S.newEmail||'').trim().toLowerCase();
+  if(!e||e.indexOf('@')<0){set({adminMsg:'올바른 이메일을 입력하세요.'});return;}
+  var found=false;for(var i=0;i<S.emails.length;i++)if(S.emails[i].toLowerCase()===e){found=true;break;}
+  if(found){set({adminMsg:'이미 등록된 이메일입니다.'});return;}
+  var l=S.emails.slice();l.push(e);saveEmails(l);
+  set({newEmail:'',adminMsg:'등록 완료!'});
+  setTimeout(function(){set({adminMsg:''},);},2000);
 }
-
-// ── 렌더 ──
-function render(){
-  const app=document.getElementById('app');
-  if(S.screen==='login') app.innerHTML=buildLogin();
-  else if(S.screen==='home') app.innerHTML=buildHome();
-  else if(S.screen==='topic') app.innerHTML=buildTopic();
-}
-
-// ── 로그인 화면 ──
-function buildLogin(){
-  const isStudent=S.adminTab==='student';
-  return `
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
-  <div class="fu" style="width:100%;max-width:420px">
-    <div style="text-align:center;margin-bottom:28px">
-      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:7px 16px;margin-bottom:12px">
-        <span style="color:#f5a623;font-weight:700;font-size:13px">🔒 VISIONFINDER · FULL CARE</span>
-      </div>
-      <h1 style="color:#e8f0ff;font-size:20px;font-weight:700;line-height:1.5">VF 풀케어반 전용<br>학습 방향성 가이드 시스템</h1>
-    </div>
-    <div style="display:flex;background:#0c1735;border-radius:12px;padding:4px;margin-bottom:20px;border:1px solid rgba(255,255,255,.07)">
-      <button onclick="set({adminTab:'student',loginMsg:'',adminLoggedIn:false})" style="flex:1;padding:10px;background:${isStudent?'#f5a623':'transparent'};border-radius:9px;color:${isStudent?'#000':'#3a4e72'};font-weight:${isStudent?700:400};font-size:13.5px">📖 학생 로그인</button>
-      <button onclick="set({adminTab:'admin',loginMsg:'',adminLoggedIn:false})" style="flex:1;padding:10px;background:${!isStudent?'#f5a623':'transparent'};border-radius:9px;color:${!isStudent?'#000':'#3a4e72'};font-weight:${!isStudent?700:400};font-size:13.5px">⚙️ 관리자</button>
-    </div>
-    ${isStudent ? buildStudentLogin() : buildAdminLogin()}
-  </div>
-</div>`;
-}
-
-function buildStudentLogin(){
-  return `
-<div style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:28px 22px">
-  <p style="color:#5a6e96;font-size:13px;margin-bottom:22px;line-height:1.7;text-align:center">
-    등록된 Google 계정으로 로그인하세요.<br>
-    <span style="font-size:11.5px;color:#2a3a5a">선생님께 등록된 계정만 입장 가능합니다.</span>
-  </p>
-  <div onclick="googleLogin()" style="width:100%;padding:13px 16px;background:#fff;border:1px solid #dadce0;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;font-size:14px;font-weight:500;color:#3c4043;box-sizing:border-box">
-    <svg width="18" height="18" viewBox="0 0 48 48">
-      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-    </svg>
-    Google 계정으로 로그인
-  </div>
-  ${S.loginMsg?`<div style="margin-top:14px;padding:12px 14px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:9px"><p style="color:#f87171;font-size:12.5px;margin:0">${esc(S.loginMsg)}</p></div>`:''}
-</div>`;
-}
-
-function buildAdminLogin(){
-  if(S.adminLoggedIn) return buildAdminPanel();
-  return `
-<div style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px 22px">
-  <p style="color:#5a6e96;font-size:13px;margin-bottom:16px">관리자 비밀번호를 입력하세요.</p>
-  <input id="admin-pw" type="password" placeholder="비밀번호" value="${esc(S.adminPw)}"
-    oninput="S.adminPw=this.value" onkeydown="if(event.key==='Enter')doAdminLogin()"
-    style="width:100%;background:#111f42;border:1.5px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;color:#dde9ff;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box">
-  ${S.loginMsg?`<p style="color:#f87171;font-size:12.5px;margin-bottom:10px">${esc(S.loginMsg)}</p>`:''}
-  <button onclick="doAdminLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:10px;color:#fff;font-weight:700;font-size:14px">관리자 로그인</button>
-</div>`;
-}
-
-function doAdminLogin(){
-  if(S.adminPw===ADMIN_PW){ set({adminLoggedIn:true,loginMsg:''}); }
-  else set({loginMsg:'비밀번호가 틀렸습니다.'});
-}
-
-function buildAdminPanel(){
-  const emailList = S.allowedEmails.length===0
-    ? `<p style="color:#2a3a5a;font-size:13px;text-align:center;padding:20px 0">등록된 계정이 없습니다.</p>`
-    : S.allowedEmails.map(em=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#111f42;border-radius:9px;margin-bottom:8px">
-        <span style="color:#8a9ecc;font-size:13px">${esc(em)}</span>
-        <button onclick="removeEmail('${esc(em)}')" style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:4px 10px;color:#f87171;font-size:12px;font-weight:600">삭제</button>
-      </div>`).join('');
-  return `
-<div style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px 22px">
-  <p style="color:#f5a623;font-weight:700;font-size:14px;margin-bottom:4px">⚙️ 허용 Google 계정 관리</p>
-  <p style="color:#3a4e72;font-size:11.5px;margin-bottom:16px">등록된 Gmail로만 Google 로그인 가능합니다.</p>
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input id="new-email" type="email" placeholder="student@gmail.com" value="${esc(S.newEmail)}"
-      oninput="S.newEmail=this.value" onkeydown="if(event.key==='Enter')addEmail()"
-      style="flex:1;background:#111f42;border:1.5px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 12px;color:#dde9ff;font-size:13.5px;outline:none">
-    <button onclick="addEmail()" style="padding:10px 16px;background:linear-gradient(135deg,#f5a623,#e07c0a);border-radius:9px;color:#000;font-weight:700;font-size:13.5px;flex-shrink:0">추가</button>
-  </div>
-  ${S.adminMsg?`<p style="color:${S.adminMsg.startsWith('✅')?'#4ade80':'#f87171'};font-size:12.5px;margin-bottom:10px">${esc(S.adminMsg)}</p>`:''}
-  <div style="max-height:280px;overflow-y:auto">${emailList}</div>
-  <p style="color:#1e2e50;font-size:11.5px;margin-top:12px;text-align:center">총 ${S.allowedEmails.length}명 등록됨</p>
-</div>`;
-}
-
-async function addEmail(){
-  const e=(S.newEmail||'').trim().toLowerCase();
-  if(!e||!e.includes('@')){ set({adminMsg:'올바른 이메일을 입력하세요.'}); return; }
-  if(S.allowedEmails.map(x=>x.toLowerCase()).includes(e)){ set({adminMsg:'이미 등록된 이메일입니다.'}); return; }
-  await saveEmails([...S.allowedEmails,e]);
-  set({newEmail:'',adminMsg:'✅ 등록 완료!'});
-  setTimeout(()=>set({adminMsg:''}),2000);
-}
-async function removeEmail(em){
-  await saveEmails(S.allowedEmails.filter(x=>x!==em));
+function removeEmail(em){var l=S.emails.filter(function(x){return x!==em;});saveEmails(l);render();}
+function goTopic(id){S.tid=id;S.sub='slides';S.si=0;S.qi=0;S.ans={};S.results=null;S.submitted=false;S.confirmed=false;set({screen:'topic'});}
+function pickAns(i){
+  var t=getTopic();var q=t.qs[S.qi];
+  if(S.submitted)return;
+  if(q.t==='multi'){
+    var cur=Array.isArray(S.ans[S.qi])?S.ans[S.qi]:[];
+    var idx=cur.indexOf(i);
+    S.ans[S.qi]=idx>=0?cur.filter(function(v){return v!==i;}):cur.concat([i]);
+  } else {S.ans[S.qi]=i;}
   render();
 }
+function doSubmit(){set({submitted:true});}
+function retryQ(){S.ans[S.qi]=undefined;set({submitted:false});}
+function nextQ(){set({qi:S.qi+1,submitted:false});}
+function goNext(){
+  var t=getTopic();if(!t)return;
+  if(t.slides[S.si].tag&&!S.confirmed){alert('Yes를 눌러 영상 확인을 완료해주세요!');return;}
+  set({si:S.si+1,confirmed:false});
+}
+function submitTest(){
+  var t=getTopic();var correct=0;
+  t.qs.forEach(function(q,i){
+    var a=S.ans[i];var ok=false;
+    if(q.t==='mcq5')ok=a===q.ans;
+    else if(q.t==='multi')ok=Array.isArray(a)&&Array.isArray(q.ans)&&a.length===q.ans.length&&q.ans.every(function(v){return a.indexOf(v)>=0;});
+    if(ok)correct++;
+  });
+  var pct=Math.round(correct/t.qs.length*100);
+  var passed=pct>=t.pass;
+  if(passed){S.passed[t.id]=true;var next=t.id+1;if(next<=TOPICS.length&&S.unlocked.indexOf(next)<0)S.unlocked.push(next);}
+  set({results:{correct:correct,total:t.qs.length,pct:pct,passed:passed},sub:'result'});
+}
 
-// ── 홈 화면 ──
+function render(){
+  var app=document.getElementById('app');
+  if(S.screen==='login')app.innerHTML=buildLogin();
+  else if(S.screen==='home')app.innerHTML=buildHome();
+  else if(S.screen==='topic')app.innerHTML=buildTopic();
+}
+
+function mk(tag,style,inner,attrs){return '<'+tag+(style?' style="'+style+'"':'')+(attrs?' '+attrs:'')+'>'+inner+'</'+tag+'>';}
+function btn(onclick,style,label){return '<button onclick="'+onclick+'" style="'+style+'">'+label+'</button>';}
+
+function buildLogin(){
+  var isSt=S.adminTab==='student';
+  var tabStyle1='flex:1;padding:10px;border-radius:9px;font-size:13.5px;background:'+(isSt?'#f5a623':'transparent')+';color:'+(isSt?'#000':'#3a4e72')+';font-weight:'+(isSt?700:400);
+  var tabStyle2='flex:1;padding:10px;border-radius:9px;font-size:13.5px;background:'+(!isSt?'#f5a623':'transparent')+';color:'+(!isSt?'#000':'#3a4e72')+';font-weight:'+(!isSt?700:400);
+  var tabs=btn("set({adminTab:'student',loginMsg:'',adminOk:false})",tabStyle1,'📖 학생 로그인')
+          +btn("set({adminTab:'admin',loginMsg:'',adminOk:false})",tabStyle2,'⚙️ 관리자');
+  var body='';
+  if(isSt){
+    body='<p style="color:#5a6e96;font-size:13px;margin-bottom:22px;line-height:1.7;text-align:center">등록된 Google 계정으로 로그인하세요.<br><span style="font-size:11.5px;color:#2a3a5a">선생님께 등록된 계정만 입장 가능합니다.</span></p>';
+    body+='<div onclick="gLogin()" style="width:100%;padding:13px 16px;background:#fff;border:1px solid #dadce0;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;font-size:14px;font-weight:500;color:#3c4043;box-sizing:border-box">'
+     +'<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>'
+     +'Google 계정으로 로그인</div>';
+    if(S.loginMsg)body+='<div style="margin-top:14px;padding:12px 14px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:9px"><p style="color:#f87171;font-size:12.5px;margin:0">'+esc(S.loginMsg)+'</p></div>';
+  } else if(!S.adminOk){
+    body='<p style="color:#5a6e96;font-size:13px;margin-bottom:16px">관리자 비밀번호를 입력하세요.</p>';
+    body+='<input type="password" placeholder="비밀번호" value="'+esc(S.adminPw)+'" oninput="S.adminPw=this.value" onkeydown="if(event.key===\'Enter\')doAdminLogin()" style="width:100%;background:#111f42;border:1.5px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;color:#dde9ff;font-size:14px;margin-bottom:12px;box-sizing:border-box">';
+    if(S.loginMsg)body+='<p style="color:#f87171;font-size:12.5px;margin-bottom:10px">'+esc(S.loginMsg)+'</p>';
+    body+=btn('doAdminLogin()','width:100%;padding:13px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:10px;color:#fff;font-weight:700;font-size:14px','관리자 로그인');
+  } else {
+    body='<p style="color:#f5a623;font-weight:700;font-size:14px;margin-bottom:4px">⚙️ 허용 Google 계정 관리</p><p style="color:#3a4e72;font-size:11.5px;margin-bottom:16px">등록된 Gmail로만 Google 로그인 가능합니다.</p>';
+    body+='<div style="display:flex;gap:8px;margin-bottom:12px"><input type="email" placeholder="student@gmail.com" value="'+esc(S.newEmail)+'" oninput="S.newEmail=this.value" onkeydown="if(event.key===\'Enter\')addEmail()" style="flex:1;background:#111f42;border:1.5px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 12px;color:#dde9ff;font-size:13.5px">'
+     +btn('addEmail()','padding:10px 16px;background:linear-gradient(135deg,#f5a623,#e07c0a);border-radius:9px;color:#000;font-weight:700;font-size:13.5px;flex-shrink:0','추가')+'</div>';
+    if(S.adminMsg)body+='<p style="color:'+(S.adminMsg.indexOf('완료')>=0?'#4ade80':'#f87171')+';font-size:12.5px;margin-bottom:10px">'+esc(S.adminMsg)+'</p>';
+    body+='<div style="max-height:280px;overflow-y:auto">';
+    if(!S.emails.length)body+='<p style="color:#2a3a5a;font-size:13px;text-align:center;padding:20px 0">등록된 계정이 없습니다.</p>';
+    for(var i=0;i<S.emails.length;i++)body+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#111f42;border-radius:9px;margin-bottom:8px"><span style="color:#8a9ecc;font-size:13px">'+esc(S.emails[i])+'</span>'+btn('removeEmail(\''+esc(S.emails[i])+'\')','background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:4px 10px;color:#f87171;font-size:12px;font-weight:600','삭제')+'</div>';
+    body+='</div><p style="color:#1e2e50;font-size:11.5px;margin-top:12px;text-align:center">총 '+S.emails.length+'명 등록됨</p>';
+  }
+  return '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px"><div class="fu" style="width:100%;max-width:420px">'
+   +'<div style="text-align:center;margin-bottom:28px"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:7px 16px;margin-bottom:12px"><span style="color:#f5a623;font-weight:700;font-size:13px">🔒 VISIONFINDER · FULL CARE</span></div>'
+   +'<h1 style="color:#e8f0ff;font-size:20px;font-weight:700;line-height:1.5">VF 풀케어반 전용<br>학습 방향성 가이드 시스템</h1></div>'
+   +'<div style="display:flex;background:#0c1735;border-radius:12px;padding:4px;margin-bottom:20px;border:1px solid rgba(255,255,255,.07)">'+tabs+'</div>'
+   +'<div style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:28px 22px">'+body+'</div>'
+   +'</div></div>';
+}
+
 function buildHome(){
-  const user=auth.currentUser;
-  const passedCount=Object.keys(S.passed).length;
-  const topicCards=TOPICS.map(t=>{
-    const isUnlocked=S.unlocked.includes(t.id);
-    const isPassed=!!S.passed[t.id];
-    return `
-<div onclick="${isUnlocked?`goTopic(${t.id})`:'alert(\"이전 파트를 먼저 완료해주세요.\")'}" style="background:${isPassed?'#0c1e10':'#0c1328'};border:1px solid ${isPassed?'rgba(74,222,128,.25)':isUnlocked?'rgba(255,255,255,.08)':'rgba(255,255,255,.03)'};border-radius:16px;padding:20px;cursor:${isUnlocked?'pointer':'default'};opacity:${isUnlocked?1:.5};transition:all .2s;margin-bottom:12px">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div style="width:48px;height:48px;border-radius:12px;background:${t.color}20;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${t.icon}</div>
-    <div style="flex:1">
-      <div style="font-size:10.5px;color:${t.color};font-weight:600;letter-spacing:.5px;margin-bottom:3px">${t.part}</div>
-      <div style="font-size:14px;font-weight:700;color:#e8f0ff;white-space:pre-line">${t.title}</div>
-      <div style="font-size:11.5px;color:#3a4e72;margin-top:2px">${t.subtitle}</div>
-    </div>
-    <div style="font-size:20px">${isPassed?'✅':isUnlocked?'▶':'🔒'}</div>
-  </div>
-</div>`;
-  }).join('');
-
-  return `
-<div style="min-height:100vh;background:#070c18;padding:0 0 40px">
-  <div style="max-width:520px;margin:0 auto;padding:24px 20px">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:8px;background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:6px 12px">
-        <span style="color:#5a6e96;font-size:12px">👤 ${esc(user?user.email:'')}</span>
-        <button onclick="logout()" style="background:none;color:#3a4e72;font-size:11.5px;cursor:pointer;padding:2px 6px;border-left:1px solid rgba(255,255,255,.08);margin-left:4px">로그아웃</button>
-      </div>
-    </div>
-    <div class="fu" style="text-align:center;margin-bottom:32px">
-      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:6px 14px;margin-bottom:14px">
-        <span style="color:#f5a623;font-weight:700;font-size:12px">🎓 VISIONFINDER FULL CARE</span>
-      </div>
-      <h1 style="color:#e8f0ff;font-size:22px;font-weight:900;margin-bottom:8px">학습 방향성 가이드</h1>
-      <p style="color:#3a4e72;font-size:13px">순서대로 학습하고 이해도 테스트를 통과하세요</p>
-    </div>
-    <div style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:24px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:13px;color:#5a6e96;font-weight:600">전체 진도</span>
-        <span style="color:#f5a623;font-size:12px;font-weight:600">${passedCount} / ${TOPICS.length} 완료</span>
-      </div>
-      <div style="height:6px;background:#0a1020;border-radius:99px">
-        <div style="height:100%;width:${passedCount/TOPICS.length*100}%;background:linear-gradient(90deg,#f5a623,#e07c0a);border-radius:99px;transition:width .6s ease"></div>
-      </div>
-    </div>
-    ${topicCards}
-  </div>
-</div>`;
+  var user=auth.currentUser;
+  var pc=Object.keys(S.passed).length;
+  var cards='';
+  for(var i=0;i<TOPICS.length;i++){
+    var t=TOPICS[i];var unl=S.unlocked.indexOf(t.id)>=0;var pas=!!S.passed[t.id];
+    cards+='<div onclick="'+(unl?'goTopic('+t.id+')':'alert(\'이전 파트를 먼저 완료해주세요.\')')+'" style="background:'+(pas?'#0c1e10':'#0c1328')+';border:1px solid '+(pas?'rgba(74,222,128,.25)':unl?'rgba(255,255,255,.08)':'rgba(255,255,255,.03)')+';border-radius:16px;padding:20px;cursor:'+(unl?'pointer':'default')+';opacity:'+(unl?1:.5)+';margin-bottom:12px">'
+     +'<div style="display:flex;align-items:center;gap:12px">'
+     +'<div style="width:48px;height:48px;border-radius:12px;background:'+t.color+'20;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">'+t.icon+'</div>'
+     +'<div style="flex:1"><div style="font-size:10.5px;color:'+t.color+';font-weight:600;letter-spacing:.5px;margin-bottom:3px">'+t.part+'</div><div style="font-size:14px;font-weight:700;color:#e8f0ff;white-space:pre-line">'+t.title+'</div><div style="font-size:11.5px;color:#3a4e72;margin-top:2px">'+t.subtitle+'</div></div>'
+     +'<div style="font-size:20px">'+(pas?'✅':unl?'▶':'🔒')+'</div></div></div>';
+  }
+  return '<div style="min-height:100vh;background:#070c18;padding:0 0 40px"><div style="max-width:520px;margin:0 auto;padding:24px 20px">'
+   +'<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:6px 12px"><span style="color:#5a6e96;font-size:12px">👤 '+esc(user?user.email:'')+' </span>'+btn('logout()','background:none;color:#3a4e72;font-size:11.5px;padding:2px 6px;border-left:1px solid rgba(255,255,255,.08);margin-left:4px','로그아웃')+'</div></div>'
+   +'<div class="fu" style="text-align:center;margin-bottom:32px"><div style="display:inline-flex;align-items:center;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:6px 14px;margin-bottom:14px"><span style="color:#f5a623;font-weight:700;font-size:12px">🎓 VISIONFINDER FULL CARE</span></div><h1 style="color:#e8f0ff;font-size:22px;font-weight:900;margin-bottom:8px">학습 방향성 가이드</h1><p style="color:#3a4e72;font-size:13px">순서대로 학습하고 이해도 테스트를 통과하세요</p></div>'
+   +'<div style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:24px"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:13px;color:#5a6e96;font-weight:600">전체 진도</span><span style="color:#f5a623;font-size:12px;font-weight:600">'+pc+' / '+TOPICS.length+' 완료</span></div><div style="height:6px;background:#0a1020;border-radius:99px"><div style="height:100%;width:'+(pc/TOPICS.length*100)+'%;background:linear-gradient(90deg,#f5a623,#e07c0a);border-radius:99px;transition:width .6s ease"></div></div></div>'
+   +cards+'</div></div>';
 }
 
-function goTopic(id){
-  S.topicId=id; S.subScreen='slides'; S.slideIdx=0;
-  S.qIdx=0; S.answers={}; S.results=null; S.submitted=false; S.confirmed=false;
-  set({screen:'topic'});
-}
-
-// ── 토픽 화면 ──
 function buildTopic(){
-  const t=TOPICS.find(x=>x.id===S.topicId);
-  if(!t) return '';
-  if(S.subScreen==='slides') return buildSlides(t);
-  if(S.subScreen==='test') return buildTest(t);
-  if(S.subScreen==='result') return buildResult(t);
+  var t=getTopic();if(!t)return '';
+  if(S.sub==='slides')return buildSlides(t);
+  if(S.sub==='test')return buildTest(t);
+  if(S.sub==='result')return buildResult(t);
   return '';
 }
 
 function buildSlides(t){
-  const slide=t.slides[S.slideIdx];
-  const isLast=S.slideIdx===t.slides.length-1;
-  const hasTag=!!slide.tag;
-  const showConfirm=hasTag&&!S.confirmed;
-  return `
-<div style="height:100vh;background:#070c18;display:flex;flex-direction:column">
-  <div style="position:sticky;top:0;z-index:10;background:rgba(7,12,24,.98);border-bottom:1px solid rgba(255,255,255,.05);padding:0 20px">
-    <div style="max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;height:56px">
-      <button onclick="set({screen:'home'})" style="background:none;color:#3a4e72;font-size:18px;padding:4px 8px">←</button>
-      <div style="flex:1">
-        <div style="font-size:10px;color:${t.color};font-weight:700;letter-spacing:.5px">${t.part}</div>
-        <div style="font-size:13px;font-weight:700;color:#dde9ff">슬라이드 ${S.slideIdx+1} / ${t.slides.length}</div>
-      </div>
-      <button onclick="set({subScreen:'test',qIdx:0,answers:{},submitted:false})" style="padding:8px 14px;background:${t.color}20;border:1px solid ${t.color}50;border-radius:9px;color:${t.color};font-size:12px;font-weight:600">이해도 테스트 →</button>
-    </div>
-  </div>
-  <div style="max-width:520px;margin:0 auto;padding:22px 20px 140px;overflow-y:auto;flex:1;width:100%">
-    ${hasTag?`<div style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.15);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11.5px;color:#f5a623;font-weight:600">〔 ${esc(slide.tag)} 〕</div>`:''}
-    <h2 style="font-size:16px;font-weight:700;color:#e8f0ff;margin-bottom:20px;line-height:1.6">${esc(slide.title)}</h2>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      ${slide.points.map((p,i)=>`
-      <div style="background:#0c1735;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
-        <span style="background:${t.color};color:#000;font-weight:700;font-size:11px;padding:2px 7px;border-radius:20px;flex-shrink:0;margin-top:2px">${String(i+1).padStart(2,'0')}</span>
-        <p style="color:#8aa4cc;font-size:13.5px;line-height:1.8">${esc(p)}</p>
-      </div>`).join('')}
-    </div>
-    ${hasTag&&!S.confirmed?`
-    <div style="margin-top:20px;background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.2);border-radius:12px;padding:16px">
-      <p style="color:#c9a227;font-size:13px;margin-bottom:14px;text-align:center">위 질문에 대한 정답을 영상에서 확인했습니까?</p>
-      <div style="display:flex;gap:10px">
-        <button onclick="set({confirmed:true})" style="flex:1;padding:11px;background:linear-gradient(135deg,${t.color},${t.darkColor});border-radius:10px;color:#000;font-weight:700;font-size:14px">✓ Yes</button>
-        <button onclick="alert('영상을 먼저 시청해주세요!')" style="flex:1;padding:11px;background:#111f42;border-radius:10px;color:#3a4e72;font-weight:600;font-size:14px">✗ No</button>
-      </div>
-    </div>`:''}
-  </div>
-  <div style="position:fixed;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,.05);padding:12px 20px;background:rgba(7,12,24,.98);z-index:10">
-    <div style="max-width:520px;margin:0 auto;display:flex;gap:10px">
-      ${S.slideIdx>0?`<button onclick="set({slideIdx:${S.slideIdx-1},confirmed:false})" style="padding:12px 18px;background:#0c1735;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#5a6e96;font-size:14px">← 이전</button>`:''}
-      ${isLast
-        ?`<button onclick="set({subScreen:'test',qIdx:0,answers:{},submitted:false})" style="flex:1;padding:12px;background:linear-gradient(135deg,${t.color},${t.darkColor});border-radius:10px;color:#000;font-weight:700;font-size:14px">이해도 테스트 시작 →</button>`
-        :`<button onclick="${hasTag&&!S.confirmed?'alert(\'Yes를 눌러 확인해주세요!\')':''}" ${hasTag&&!S.confirmed?'':'onclick="set({slideIdx:'+(S.slideIdx+1)+',confirmed:false})"'} style="flex:1;padding:12px;background:${hasTag&&!S.confirmed?'#0a1020':'linear-gradient(135deg,'+t.color+','+t.darkColor+')'};border-radius:10px;color:${hasTag&&!S.confirmed?'#1e2e50':'#000'};font-weight:700;font-size:14px;cursor:${hasTag&&!S.confirmed?'default':'pointer'}">다음 →</button>`
-      }
-    </div>
-  </div>
-</div>`;
+  var slide=t.slides[S.si];var isLast=S.si===t.slides.length-1;var hasTag=!!slide.tag;var nextOk=!hasTag||S.confirmed;
+  var h='<div style="min-height:100vh;background:#070c18;display:flex;flex-direction:column">';
+  h+='<div style="position:sticky;top:0;z-index:10;background:rgba(7,12,24,.98);border-bottom:1px solid rgba(255,255,255,.05);padding:0 20px"><div style="max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;height:56px">'
+   +btn("set({screen:'home'})",'background:none;color:#3a4e72;font-size:18px;padding:4px 8px','←')
+   +'<div style="flex:1"><div style="font-size:10px;color:'+t.color+';font-weight:700;letter-spacing:.5px">'+t.part+'</div><div style="font-size:13px;font-weight:700;color:#dde9ff">슬라이드 '+(S.si+1)+' / '+t.slides.length+'</div></div>'
+   +btn("set({sub:'test',qi:0,ans:{},submitted:false})",'padding:8px 14px;background:'+t.color+'20;border:1px solid '+t.color+'50;border-radius:9px;color:'+t.color+';font-size:12px;font-weight:600','이해도 테스트 →')
+   +'</div></div>';
+  h+='<div style="max-width:520px;margin:0 auto;padding:22px 20px 140px;overflow-y:auto;width:100%">';
+  if(hasTag)h+='<div style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.15);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11.5px;color:#f5a623;font-weight:600">〔 '+esc(slide.tag)+' 〕</div>';
+  if(slide.yt)h+='<div style="margin-bottom:18px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.07)"><div style="position:relative;padding-bottom:56.25%;height:0;background:#000"><iframe src="https://www.youtube.com/embed/'+slide.yt+'?rel=0" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen loading="lazy"></iframe></div></div>';
+  h+='<h2 style="font-size:16px;font-weight:700;color:#e8f0ff;margin-bottom:20px;line-height:1.6">'+esc(slide.title)+'</h2>';
+  h+='<div style="display:flex;flex-direction:column;gap:12px">';
+  for(var i=0;i<slide.pts.length;i++)h+='<div style="background:#0c1735;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start"><span style="background:'+t.color+';color:#000;font-weight:700;font-size:11px;padding:2px 7px;border-radius:20px;flex-shrink:0;margin-top:2px">'+String(i+1).padStart(2,'0')+'</span><p style="color:#8aa4cc;font-size:13.5px;line-height:1.8">'+esc(slide.pts[i])+'</p></div>';
+  h+='</div>';
+  if(hasTag&&!S.confirmed)h+='<div style="margin-top:20px;background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.2);border-radius:12px;padding:16px"><p style="color:#c9a227;font-size:13px;margin-bottom:14px;text-align:center">위 질문에 대한 정답을 영상에서 확인했습니까?</p><div style="display:flex;gap:10px">'+btn("set({confirmed:true})",'flex:1;padding:11px;background:linear-gradient(135deg,'+t.color+','+t.dark+');border-radius:10px;color:#000;font-weight:700;font-size:14px','✓ Yes')+btn("alert('영상을 먼저 시청해주세요!')",'flex:1;padding:11px;background:#111f42;border-radius:10px;color:#3a4e72;font-weight:600;font-size:14px','✗ No')+'</div></div>';
+  else if(hasTag&&S.confirmed)h+='<div style="margin-top:20px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:12px 16px;text-align:center"><span style="color:#4ade80;font-size:13px;font-weight:600">✅ 영상 확인 완료</span></div>';
+  h+='</div>';
+  h+='<div style="position:fixed;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,.05);padding:12px 20px;background:rgba(7,12,24,.98);z-index:10"><div style="max-width:520px;margin:0 auto;display:flex;gap:10px">';
+  if(S.si>0)h+=btn("set({si:"+(S.si-1)+",confirmed:false})",'padding:12px 18px;background:#0c1735;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#5a6e96;font-size:14px','← 이전');
+  if(isLast)h+=btn("set({sub:'test',qi:0,ans:{},submitted:false})",'flex:1;padding:12px;background:linear-gradient(135deg,'+t.color+','+t.dark+');border-radius:10px;color:#000;font-weight:700;font-size:14px','이해도 테스트 시작 →');
+  else h+=btn('goNext()','flex:1;padding:12px;background:'+(nextOk?'linear-gradient(135deg,'+t.color+','+t.dark+')':'#0a1020')+';border-radius:10px;color:'+(nextOk?'#000':'#1e2e50')+';font-weight:700;font-size:14px;cursor:'+(nextOk?'pointer':'default'),'다음 →');
+  h+='</div></div></div>';
+  return h;
 }
 
 function buildTest(t){
-  const q=t.questions[S.qIdx];
-  const isLast=S.qIdx===t.questions.length-1;
-  const ans=S.answers[S.qIdx];
-  const hasAns=q.type==='multi'?Array.isArray(ans)&&ans.length>0:ans!==undefined;
-  const correctAns=Array.isArray(q.answer)?q.answer:[q.answer];
-  let isCorrect=false;
-  if(S.submitted){
-    if(q.type==='multi') isCorrect=Array.isArray(ans)&&ans.length===correctAns.length&&correctAns.every(v=>ans.includes(v));
-    else isCorrect=ans===q.answer;
+  var q=t.qs[S.qi];var isLast=S.qi===t.qs.length-1;
+  var ans=S.ans[S.qi];var hasAns=q.t==='multi'?(Array.isArray(ans)&&ans.length>0):(ans!==undefined);
+  var ca=Array.isArray(q.ans)?q.ans:[q.ans];
+  var isOk=false;
+  if(S.submitted){if(q.t==='multi')isOk=Array.isArray(ans)&&ans.length===ca.length&&ca.every(function(v){return ans.indexOf(v)>=0;});else isOk=ans===q.ans;}
+  var isTtul=q.txt.indexOf('틀린')>=0;var sc=isTtul?'#f87171':'#4ade80';
+  var pct=((S.qi+1)/t.qs.length*100).toFixed(0);
+  var txtHtml=esc(q.txt);
+  if(q.ul)txtHtml=esc(q.txt).replace(esc(q.ul),'<span style="text-decoration:underline;text-underline-offset:3px">'+esc(q.ul)+'</span>');
+  else if(isTtul)txtHtml=esc(q.txt).replace('틀린','<span style="text-decoration:underline;text-underline-offset:3px">틀린</span>');
+  var opts='';
+  for(var i=0;i<(q.opts||[]).length;i++){
+    var sel=q.t==='multi'?(Array.isArray(ans)&&ans.indexOf(i)>=0):(ans===i);
+    var bc='rgba(255,255,255,.07)',bg='#0c1735',tc='#7a90b8',bb='#111f42';
+    if(sel){if(S.submitted){var ir=ca.indexOf(i)>=0;bc=ir?'#4ade80':'#f87171';bg=ir?'rgba(74,222,128,.08)':'rgba(248,113,113,.08)';tc=ir?'#4ade80':'#f87171';bb=ir?'#4ade80':'#f87171';}else{bc=sc;bg=sc==='#f87171'?'rgba(248,113,113,.08)':'rgba(74,222,128,.08)';tc=sc;bb=sc;}}
+    opts+='<div onclick="pickAns('+i+')" style="background:'+bg+';border:2px solid '+bc+';border-radius:11px;padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:'+(S.submitted?'default':'pointer')+'">'
+     +'<div style="width:22px;height:22px;border-radius:5px;background:'+(sel?bb:'#111f42')+';border:1.5px solid '+(sel?'transparent':'rgba(255,255,255,.15)')+';display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(sel?'<span style="color:#000;font-size:13px;font-weight:700">✓</span>':'')+'</div>'
+     +'<span style="color:'+tc+';font-size:14px;line-height:1.6">'+(OPTS[i]||'')+' '+esc(q.opts[i])+'</span></div>';
   }
-  const isTtullin=q.text.includes('틀린');
-  const selColor=isTtullin?'#f87171':'#4ade80';
-
-  const optionsHtml=(q.options||[]).map((opt,i)=>{
-    const selected=q.type==='multi'?(Array.isArray(ans)&&ans.includes(i)):(ans===i);
-    let borderCol='rgba(255,255,255,.07)';
-    let bgCol='#0c1735';
-    let textCol='#7a90b8';
-    let boxBg='#111f42';
-    if(selected){
-      if(S.submitted){
-        const isRight=correctAns.includes(i);
-        borderCol=isRight?'#4ade80':'#f87171';
-        bgCol=isRight?'#4ade8015':'#f8717115';
-        textCol=isRight?'#4ade80':'#f87171';
-        boxBg=isRight?'#4ade80':'#f87171';
-      } else {
-        borderCol=selColor; bgCol=selColor+'15'; textCol=selColor; boxBg=selColor;
-      }
-    }
-    return `
-<div onclick="${S.submitted?'':'pickAnswer('+i+')'}" style="background:${bgCol};border:2px solid ${borderCol};border-radius:11px;padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:${S.submitted?'default':'pointer'}">
-  <div style="width:22px;height:22px;border-radius:5px;background:${selected?boxBg:'#111f42'};border:1.5px solid ${selected?'transparent':'rgba(255,255,255,.15)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-    ${selected?'<span style="color:#000;font-size:13px;font-weight:700">✓</span>':''}
-  </div>
-  <span style="color:${textCol};font-size:14px;line-height:1.6">${OPTS[i]||''} ${esc(opt)}</span>
-</div>`;
-  }).join('');
-
-  const progressPct=((S.qIdx+1)/t.questions.length*100).toFixed(0);
-  const textHtml=q.underline
-    ? esc(q.text).replace(esc(q.underline),`<span style="text-decoration:underline;text-underline-offset:3px">${esc(q.underline)}</span>`)
-    : q.text.includes('틀린')
-    ? esc(q.text).replace('틀린','<span style="text-decoration:underline;text-underline-offset:3px">틀린</span>')
-    : esc(q.text);
-
-  return `
-<div style="height:100vh;background:#070c18;display:flex;flex-direction:column">
-  <div style="position:sticky;top:0;z-index:10;background:rgba(7,12,24,.98);border-bottom:1px solid rgba(255,255,255,.05);padding:0 20px">
-    <div style="max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;height:56px">
-      <button onclick="set({subScreen:'slides'})" style="background:none;color:#3a4e72;font-size:18px;padding:4px 8px">←</button>
-      <div style="flex:1">
-        <div style="font-size:10px;color:${t.color};font-weight:700;letter-spacing:.5px">${t.part} · 이해도 테스트</div>
-        <div style="height:4px;background:#0a1020;border-radius:99px;margin-top:6px">
-          <div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,${t.color},${t.darkColor});border-radius:99px;transition:width .4s"></div>
-        </div>
-      </div>
-      <span style="color:#3a4e72;font-size:12px">${S.qIdx+1}/${t.questions.length}</span>
-    </div>
-  </div>
-  <div style="max-width:520px;margin:0 auto;padding:22px 20px 140px;overflow-y:auto;flex:1;width:100%">
-    <div style="background:#0c1735;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:18px">
-      <span style="background:${t.color};color:#000;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px">Q${S.qIdx+1}</span>
-      ${q.type==='multi'?`
-      <div style="background:${isTtullin?'rgba(248,113,113,.06)':'rgba(74,222,128,.06)'};border:1px solid ${isTtullin?'rgba(248,113,113,.2)':'rgba(74,222,128,.2)'};border-radius:9px;padding:8px 14px;margin:10px 0;display:flex;align-items:center;gap:6px">
-        <span style="font-size:13px;color:${isTtullin?'#f87171':'#4ade80'}">${isTtullin?'✘':'✔'} <span style="text-decoration:underline;text-underline-offset:3px">${isTtullin?'틀린':'옳은'}</span> 것을 모두 선택하세요 (복수 선택 가능)</span>
-      </div>`:''}
-      <p style="color:#dde9ff;font-size:15px;line-height:1.85;font-weight:500;margin:12px 0">${textHtml}</p>
-      <div style="display:flex;flex-direction:column;gap:9px">${optionsHtml}</div>
-      ${S.submitted?`
-      <div style="padding:13px 16px;border-radius:10px;margin-top:12px;background:${isCorrect?'rgba(74,222,128,.08)':'rgba(248,113,113,.08)'};border:1px solid ${isCorrect?'rgba(74,222,128,.25)':'rgba(248,113,113,.25)'};display:flex;align-items:center;gap:8px">
-        <span style="font-size:18px">${isCorrect?'✅':'❌'}</span>
-        <span style="color:${isCorrect?'#4ade80':'#f87171'};font-size:14px;font-weight:600">${isCorrect?'정답입니다!':'틀렸습니다. 다시 풀어보세요.'}</span>
-      </div>`:''}
-    </div>
-  </div>
-  <div style="position:fixed;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,.05);padding:12px 20px;background:rgba(7,12,24,.98);z-index:10">
-    <div style="max-width:520px;margin:0 auto;display:flex;gap:10px">
-      ${!S.submitted?`<button onclick="${hasAns?'doSubmit()':''}" style="flex:1;padding:12px;background:${hasAns?'linear-gradient(135deg,'+t.color+','+t.darkColor+')':'#0a1020'};border-radius:10px;color:${hasAns?'#000':'#1e2e50'};font-weight:700;font-size:14px;cursor:${hasAns?'pointer':'default'};opacity:${hasAns?1:.35}">제출하기</button>`:''}
-      ${S.submitted&&!isCorrect?`<button onclick="retryQ()" style="flex:1;padding:12px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:10px;color:#f87171;font-weight:700;font-size:14px">🔄 다시 풀기</button>`:''}
-      ${S.submitted&&isCorrect&&!isLast?`<button onclick="nextQ()" style="flex:1;padding:12px;background:linear-gradient(135deg,${t.color},${t.darkColor});border-radius:10px;color:#000;font-weight:700;font-size:14px">다음 문제 →</button>`:''}
-      ${S.submitted&&isCorrect&&isLast?`<button onclick="submitTest()" style="flex:1;padding:12px;background:linear-gradient(135deg,${t.color},${t.darkColor});border-radius:10px;color:#000;font-weight:700;font-size:14px">결과 제출 ✓</button>`:''}
-    </div>
-  </div>
-</div>`;
-}
-
-function pickAnswer(i){
-  const q=TOPICS.find(x=>x.id===S.topicId).questions[S.qIdx];
-  if(q.type==='multi'){
-    const cur=Array.isArray(S.answers[S.qIdx])?S.answers[S.qIdx]:[];
-    const next=cur.includes(i)?cur.filter(v=>v!==i):[...cur,i];
-    S.answers[S.qIdx]=next;
-  } else {
-    S.answers[S.qIdx]=i;
-  }
-  render();
-}
-function doSubmit(){ set({submitted:true}); }
-function retryQ(){ S.answers[S.qIdx]=undefined; set({submitted:false}); }
-function nextQ(){ set({qIdx:S.qIdx+1,submitted:false}); }
-function submitTest(){
-  const t=TOPICS.find(x=>x.id===S.topicId);
-  let correct=0;
-  t.questions.forEach((q,i)=>{
-    const a=S.answers[i];
-    let ok=false;
-    if(q.type==='mcq5') ok=a===q.answer;
-    else if(q.type==='multi') ok=Array.isArray(a)&&Array.isArray(q.answer)&&a.length===q.answer.length&&q.answer.every(v=>a.includes(v));
-    if(ok) correct++;
-  });
-  const pct=Math.round(correct/t.questions.length*100);
-  const passed=pct>=t.passScore;
-  if(passed){
-    S.passed[t.id]=true;
-    const next=t.id+1;
-    if(next<=TOPICS.length&&!S.unlocked.includes(next)) S.unlocked.push(next);
-  }
-  set({results:{correct,total:t.questions.length,pct,passed},subScreen:'result'});
+  var h='<div style="height:100vh;background:#070c18;display:flex;flex-direction:column">';
+  h+='<div style="position:sticky;top:0;z-index:10;background:rgba(7,12,24,.98);border-bottom:1px solid rgba(255,255,255,.05);padding:0 20px"><div style="max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;height:56px">'
+   +btn("set({sub:'slides'})",'background:none;color:#3a4e72;font-size:18px;padding:4px 8px','←')
+   +'<div style="flex:1"><div style="font-size:10px;color:'+t.color+';font-weight:700;letter-spacing:.5px">'+t.part+' · 이해도 테스트</div><div style="height:4px;background:#0a1020;border-radius:99px;margin-top:6px"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+t.color+','+t.dark+');border-radius:99px;transition:width .4s"></div></div></div>'
+   +'<span style="color:#3a4e72;font-size:12px">'+(S.qi+1)+'/'+t.qs.length+'</span></div></div>';
+  h+='<div style="max-width:520px;margin:0 auto;padding:22px 20px 140px;overflow-y:auto;flex:1;width:100%"><div style="background:#0c1735;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:18px">'
+   +'<span style="background:'+t.color+';color:#000;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px">Q'+(S.qi+1)+'</span>';
+  if(q.t==='multi')h+='<div style="background:'+(isTtul?'rgba(248,113,113,.06)':'rgba(74,222,128,.06)')+';border:1px solid '+(isTtul?'rgba(248,113,113,.2)':'rgba(74,222,128,.2)')+';border-radius:9px;padding:8px 14px;margin:10px 0"><span style="font-size:13px;color:'+(isTtul?'#f87171':'#4ade80')+'">'+(isTtul?'✘':'✔')+' <span style="text-decoration:underline;text-underline-offset:3px">'+(isTtul?'틀린':'옳은')+'</span> 것을 모두 선택하세요</span></div>';
+  h+='<p style="color:#dde9ff;font-size:15px;line-height:1.85;font-weight:500;margin:12px 0">'+txtHtml+'</p>'
+   +'<div style="display:flex;flex-direction:column;gap:9px">'+opts+'</div>';
+  if(S.submitted)h+='<div style="padding:13px 16px;border-radius:10px;margin-top:12px;background:'+(isOk?'rgba(74,222,128,.08)':'rgba(248,113,113,.08)')+';border:1px solid '+(isOk?'rgba(74,222,128,.25)':'rgba(248,113,113,.25)')+';display:flex;align-items:center;gap:8px"><span style="font-size:18px">'+(isOk?'✅':'❌')+'</span><span style="color:'+(isOk?'#4ade80':'#f87171')+';font-size:14px;font-weight:600">'+(isOk?'정답입니다!':'틀렸습니다. 다시 풀어보세요.')+'</span></div>';
+  h+='</div></div>';
+  h+='<div style="position:fixed;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,.05);padding:12px 20px;background:rgba(7,12,24,.98);z-index:10"><div style="max-width:520px;margin:0 auto;display:flex;gap:10px">';
+  if(!S.submitted)h+=btn(hasAns?'doSubmit()':'',' flex:1;padding:12px;background:'+(hasAns?'linear-gradient(135deg,'+t.color+','+t.dark+')':'#0a1020')+';border-radius:10px;color:'+(hasAns?'#000':'#1e2e50')+';font-weight:700;font-size:14px;cursor:'+(hasAns?'pointer':'default')+';opacity:'+(hasAns?1:.35),'제출하기');
+  if(S.submitted&&!isOk)h+=btn('retryQ()','flex:1;padding:12px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:10px;color:#f87171;font-weight:700;font-size:14px','🔄 다시 풀기');
+  if(S.submitted&&isOk&&!isLast)h+=btn('nextQ()','flex:1;padding:12px;background:linear-gradient(135deg,'+t.color+','+t.dark+');border-radius:10px;color:#000;font-weight:700;font-size:14px','다음 문제 →');
+  if(S.submitted&&isOk&&isLast)h+=btn('submitTest()','flex:1;padding:12px;background:linear-gradient(135deg,'+t.color+','+t.dark+');border-radius:10px;color:#000;font-weight:700;font-size:14px','결과 제출 ✓');
+  h+='</div></div></div>';
+  return h;
 }
 
 function buildResult(t){
-  const r=S.results;
-  return `
-<div style="min-height:100vh;background:#070c18;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px">
-  <div class="pop" style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:40px 32px;max-width:360px;width:100%;text-align:center">
-    <div style="font-size:56px;margin-bottom:16px">${r.passed?'🎉':'💪'}</div>
-    <h2 style="font-size:20px;font-weight:700;color:#e8f0ff;margin-bottom:8px">${r.passed?'통과!':'아쉽네요'}</h2>
-    <div style="font-size:48px;font-weight:900;color:${r.passed?'#4ade80':'#f5a623'};margin:16px 0">${r.pct}점</div>
-    <p style="color:#5a6e96;font-size:13px;margin-bottom:24px">${r.correct}/${r.total}문제 정답 · 합격 기준 ${t.passScore}점</p>
-    ${r.passed?`<p style="color:#4ade80;font-size:13px;margin-bottom:20px">✅ 다음 파트가 잠금 해제되었습니다!</p>`:`<p style="color:#f87171;font-size:13px;margin-bottom:20px">슬라이드를 다시 학습하고 재도전해보세요.</p>`}
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <button onclick="set({screen:'home'})" style="padding:13px;background:linear-gradient(135deg,${t.color},${t.darkColor});border-radius:10px;color:#000;font-weight:700;font-size:14px">홈으로 돌아가기</button>
-      ${!r.passed?`<button onclick="set({subScreen:'test',qIdx:0,answers:{},submitted:false,results:null})" style="padding:13px;background:#0c1735;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#5a6e96;font-size:14px">다시 풀기</button>`:''}
-    </div>
-  </div>
-</div>`;
+  var r=S.results;
+  var h='<div style="min-height:100vh;background:#070c18;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px">'
+   +'<div class="pop" style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:40px 32px;max-width:360px;width:100%;text-align:center">'
+   +'<div style="font-size:56px;margin-bottom:16px">'+(r.passed?'🎉':'💪')+'</div>'
+   +'<h2 style="font-size:20px;font-weight:700;color:#e8f0ff;margin-bottom:8px">'+(r.passed?'통과!':'아쉽네요')+'</h2>'
+   +'<div style="font-size:48px;font-weight:900;color:'+(r.passed?'#4ade80':'#f5a623')+';margin:16px 0">'+r.pct+'점</div>'
+   +'<p style="color:#5a6e96;font-size:13px;margin-bottom:24px">'+r.correct+'/'+r.total+'문제 정답 · 합격 기준 '+t.pass+'점</p>'
+   +(r.passed?'<p style="color:#4ade80;font-size:13px;margin-bottom:20px">✅ 다음 파트가 잠금 해제되었습니다!</p>':'<p style="color:#f87171;font-size:13px;margin-bottom:20px">슬라이드를 다시 학습하고 재도전해보세요.</p>')
+   +'<div style="display:flex;flex-direction:column;gap:10px">'
+   +btn("set({screen:'home'})",'padding:13px;background:linear-gradient(135deg,'+t.color+','+t.dark+');border-radius:10px;color:#000;font-weight:700;font-size:14px','홈으로 돌아가기');
+  if(!r.passed)h+=btn("set({sub:'test',qi:0,ans:{},submitted:false,results:null})",'padding:13px;background:#0c1735;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#5a6e96;font-size:14px','다시 풀기');
+  h+='</div></div></div>';
+  return h;
 }
-
-// ── 다음 버튼 fix (onclick 내 template literal 이슈 우회) ──
-window.goTopic=goTopic;
-window.pickAnswer=pickAnswer;
-window.doSubmit=doSubmit;
-window.retryQ=retryQ;
-window.nextQ=nextQ;
-window.submitTest=submitTest;
-window.googleLogin=googleLogin;
-window.logout=logout;
-window.doAdminLogin=doAdminLogin;
-window.addEmail=addEmail;
-window.removeEmail=removeEmail;
-window.set=set;
 </script>
 </body>
 </html>
