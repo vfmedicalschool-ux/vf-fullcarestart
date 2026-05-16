@@ -84,7 +84,7 @@ var S={
   ans:{},submitted:false,results:null,
   unlocked:[1],passed:{},confirmed:false,
   loginMsg:'',adminPw:'',adminOk:false,
-  adminTab:'student',emails:[],newEmail:'',adminMsg:'',
+  adminTab:'student',emails:[],newEmail:'',newName:'',adminMsg:'',
   adminTab2:'email',adminProgress:[],progressLoading:false
 };
 function set(o){for(var k in o)S[k]=o[k];render();}
@@ -100,7 +100,10 @@ auth.onAuthStateChanged(function(user){
     if(cached===user.email.toLowerCase()){S.screen='home';render();return;}
     loadEmails();
     var found=false;
-    for(var i=0;i<S.emails.length;i++){if(S.emails[i].toLowerCase()===user.email.toLowerCase()){found=true;break;}}
+    for(var i=0;i<S.emails.length;i++){
+      var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];
+      if(em.toLowerCase()===user.email.toLowerCase()){found=true;break;}
+    }
     if(found){sessionStorage.setItem('vf_ok',user.email.toLowerCase());S.screen='home';S.loginMsg='';}
     else{auth.signOut();S.loginMsg='등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';}
   } else {
@@ -121,12 +124,18 @@ function logout(){auth.signOut();S.unlocked=[1];S.passed={};}
 function doAdminLogin(){if(S.adminPw===ADMIN_PW)set({adminOk:true,loginMsg:''});else set({loginMsg:'비밀번호가 틀렸습니다.'});}
 function addEmail(){
   var e=(S.newEmail||'').trim().toLowerCase();
+  var n=(S.newName||'').trim();
   if(!e||e.indexOf('@')<0){set({adminMsg:'올바른 이메일을 입력하세요.'});return;}
-  var found=false;for(var i=0;i<S.emails.length;i++)if(S.emails[i].toLowerCase()===e){found=true;break;}
+  var found=false;
+  for(var i=0;i<S.emails.length;i++){var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];if(em.toLowerCase()===e){found=true;break;}}
   if(found){set({adminMsg:'이미 등록된 이메일입니다.'});return;}
-  var l=S.emails.slice();l.push(e);saveEmails(l);
-  set({newEmail:'',adminMsg:'등록 완료!'});
-  setTimeout(function(){set({adminMsg:''},);},2000);
+  var l=S.emails.slice();l.push({email:e,name:n});saveEmails(l);
+  set({newEmail:'',newName:'',adminMsg:'등록 완료!'});
+  setTimeout(function(){set({adminMsg:''});},2000);
+}
+function removeEmail(em){
+  var l=S.emails.filter(function(x){var xe=typeof x==='object'?x.email:x;return xe!==em;});
+  saveEmails(l);render();
 }
 function loadProgress(){
   set({progressLoading:true});
@@ -137,7 +146,6 @@ function loadProgress(){
     set({adminProgress:list,progressLoading:false});
   }).catch(function(e){set({progressLoading:false});alert('Firestore 오류: '+e.message);});
 }
-function removeEmail(em){var l=S.emails.filter(function(x){return x!==em;});saveEmails(l);render();}
 function goTopic(id){S.tid=id;S.sub='slides';S.si=0;S.qi=0;S.ans={};S.results=null;S.submitted=false;S.confirmed=false;set({screen:'topic'});}
 function pickAns(i){
   var t=getTopic();var q=t.qs[S.qi];
