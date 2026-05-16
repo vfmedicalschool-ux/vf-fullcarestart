@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-firestore-compat.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:#070c18;color:#dde9ff;min-height:100vh;line-height:1.6}
@@ -33,6 +34,7 @@ firebase.initializeApp({
   appId:"1:744998625393:web:1204ffc2ced9031ce0bbd0"
 });
 var auth=firebase.auth();
+var db=firebase.firestore();
 var gProvider=new firebase.auth.GoogleAuthProvider();
 var ADMIN_PW='vf2025admin';
 var OPTS=['①','②','③','④','⑤','⑥','⑦'];
@@ -82,7 +84,8 @@ var S={
   ans:{},submitted:false,results:null,
   unlocked:[1],passed:{},confirmed:false,
   loginMsg:'',adminPw:'',adminOk:false,
-  adminTab:'student',emails:[],newEmail:'',adminMsg:''
+  adminTab:'student',emails:[],newEmail:'',adminMsg:'',
+  adminTab2:'email',adminProgress:[],progressLoading:false
 };
 function set(o){for(var k in o)S[k]=o[k];render();}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -125,6 +128,15 @@ function addEmail(){
   set({newEmail:'',adminMsg:'등록 완료!'});
   setTimeout(function(){set({adminMsg:''},);},2000);
 }
+function loadProgress(){
+  set({progressLoading:true});
+  db.collection('progress').get().then(function(snap){
+    var list=[];
+    snap.forEach(function(doc){list.push(doc.data());});
+    list.sort(function(a,b){return (a.email||'').localeCompare(b.email||'');});
+    set({adminProgress:list,progressLoading:false});
+  }).catch(function(e){set({progressLoading:false});alert('Firestore 오류: '+e.message);});
+}
 function removeEmail(em){var l=S.emails.filter(function(x){return x!==em;});saveEmails(l);render();}
 function goTopic(id){S.tid=id;S.sub='slides';S.si=0;S.qi=0;S.ans={};S.results=null;S.submitted=false;S.confirmed=false;set({screen:'topic'});}
 function pickAns(i){
@@ -155,7 +167,18 @@ function submitTest(){
   });
   var pct=Math.round(correct/t.qs.length*100);
   var passed=pct>=t.pass;
-  if(passed){S.passed[t.id]=true;var next=t.id+1;if(next<=TOPICS.length&&S.unlocked.indexOf(next)<0)S.unlocked.push(next);}
+  if(passed){
+    S.passed[t.id]=true;
+    var next=t.id+1;if(next<=TOPICS.length&&S.unlocked.indexOf(next)<0)S.unlocked.push(next);
+    // Firestore에 진도 저장
+    var user=auth.currentUser;
+    if(user){
+      var emailKey=user.email.replace(/\./g,'_');
+      var update={email:user.email,updatedAt:new Date().toISOString()};
+      update['part'+t.id]=true;
+      db.collection('progress').doc(emailKey).set(update,{merge:true}).catch(function(e){console.log('Firestore save error:',e);});
+    }
+  }
   set({results:{correct:correct,total:t.qs.length,pct:pct,passed:passed},sub:'result'});
 }
 
@@ -188,14 +211,69 @@ function buildLogin(){
     if(S.loginMsg)body+='<p style="color:#f87171;font-size:12.5px;margin-bottom:10px">'+esc(S.loginMsg)+'</p>';
     body+=btn('doAdminLogin()','width:100%;padding:13px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:10px;color:#fff;font-weight:700;font-size:14px','관리자 로그인');
   } else {
-    body='<p style="color:#f5a623;font-weight:700;font-size:14px;margin-bottom:4px">⚙️ 허용 Google 계정 관리</p><p style="color:#3a4e72;font-size:11.5px;margin-bottom:16px">등록된 Gmail로만 Google 로그인 가능합니다.</p>';
-    body+='<div style="display:flex;gap:8px;margin-bottom:12px"><input type="email" placeholder="student@gmail.com" value="'+esc(S.newEmail)+'" oninput="S.newEmail=this.value" onkeydown="if(event.key===\'Enter\')addEmail()" style="flex:1;background:#111f42;border:1.5px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 12px;color:#dde9ff;font-size:13.5px">'
-     +btn('addEmail()','padding:10px 16px;background:linear-gradient(135deg,#f5a623,#e07c0a);border-radius:9px;color:#000;font-weight:700;font-size:13.5px;flex-shrink:0','추가')+'</div>';
-    if(S.adminMsg)body+='<p style="color:'+(S.adminMsg.indexOf('완료')>=0?'#4ade80':'#f87171')+';font-size:12.5px;margin-bottom:10px">'+esc(S.adminMsg)+'</p>';
-    body+='<div style="max-height:280px;overflow-y:auto">';
-    if(!S.emails.length)body+='<p style="color:#2a3a5a;font-size:13px;text-align:center;padding:20px 0">등록된 계정이 없습니다.</p>';
-    for(var i=0;i<S.emails.length;i++)body+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#111f42;border-radius:9px;margin-bottom:8px"><span style="color:#8a9ecc;font-size:13px">'+esc(S.emails[i])+'</span>'+btn('removeEmail(\''+esc(S.emails[i])+'\')','background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:4px 10px;color:#f87171;font-size:12px;font-weight:600','삭제')+'</div>';
-    body+='</div><p style="color:#1e2e50;font-size:11.5px;margin-top:12px;text-align:center">총 '+S.emails.length+'명 등록됨</p>';
+    // 관리자 탭 내부 탭
+    var isEmailTab=S.adminTab2!=='progress';
+    body='<div style="display:flex;background:#111f42;border-radius:10px;padding:3px;margin-bottom:16px">'
+     +btn("set({adminTab2:'email'})",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(isEmailTab?'#1d4ed8':'transparent')+';color:'+(isEmailTab?'#fff':'#3a4e72'),'📋 이메일 관리')
+     +btn("set({adminTab2:'progress',adminProgress:[],progressLoading:false})",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(!isEmailTab?'#1d4ed8':'transparent')+';color:'+(!isEmailTab?'#fff':'#3a4e72'),'📊 진도 확인')
+     +'</div>';
+    if(isEmailTab){
+      body+='<p style="color:#f5a623;font-weight:700;font-size:13px;margin-bottom:4px">⚙️ 허용 Google 계정 관리</p><p style="color:#3a4e72;font-size:11.5px;margin-bottom:12px">등록된 Gmail로만 Google 로그인 가능합니다.</p>';
+      body+='<div style="display:flex;gap:8px;margin-bottom:12px"><input type="email" placeholder="student@gmail.com" value="'+esc(S.newEmail)+'" oninput="S.newEmail=this.value" onkeydown="if(event.key===\'Enter\')addEmail()" style="flex:1;background:#0c1328;border:1.5px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 12px;color:#dde9ff;font-size:13.5px">'
+       +btn('addEmail()','padding:10px 16px;background:linear-gradient(135deg,#f5a623,#e07c0a);border-radius:9px;color:#000;font-weight:700;font-size:13.5px;flex-shrink:0','추가')+'</div>';
+      if(S.adminMsg)body+='<p style="color:'+(S.adminMsg.indexOf('완료')>=0?'#4ade80':'#f87171')+';font-size:12.5px;margin-bottom:10px">'+esc(S.adminMsg)+'</p>';
+      body+='<div style="max-height:260px;overflow-y:auto">';
+      if(!S.emails.length)body+='<p style="color:#2a3a5a;font-size:13px;text-align:center;padding:20px 0">등록된 계정이 없습니다.</p>';
+      for(var i=0;i<S.emails.length;i++)body+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#111f42;border-radius:9px;margin-bottom:8px"><span style="color:#8a9ecc;font-size:13px">'+esc(S.emails[i])+'</span>'+btn('removeEmail(\''+esc(S.emails[i])+'\')','background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:4px 10px;color:#f87171;font-size:12px;font-weight:600','삭제')+'</div>';
+      body+='</div><p style="color:#1e2e50;font-size:11.5px;margin-top:12px;text-align:center">총 '+S.emails.length+'명 등록됨</p>';
+    } else {
+      body+='<p style="color:#f5a623;font-weight:700;font-size:13px;margin-bottom:12px">📊 학생별 파트 완료 현황</p>';
+      if(!S.adminProgress.length&&!S.progressLoading){
+        body+=btn('loadProgress()','width:100%;padding:12px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:10px;color:#fff;font-weight:700;font-size:14px','🔄 진도 불러오기');
+      } else if(S.progressLoading){
+        body+='<p style="color:#3a4e72;font-size:13px;text-align:center;padding:20px 0">불러오는 중...</p>';
+      } else {
+        body+=btn('loadProgress()','width:100%;padding:9px;background:#111f42;border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#5a6e96;font-size:12px;margin-bottom:12px','🔄 새로고침');
+        // 헤더
+        body+='<div style="display:grid;grid-template-columns:1fr 60px 60px 60px;gap:4px;padding:8px 12px;background:#111f42;border-radius:8px;margin-bottom:6px">'
+         +'<span style="color:#3a4e72;font-size:11px;font-weight:600">이메일</span>'
+         +'<span style="color:#f5a623;font-size:11px;font-weight:600;text-align:center">PART1</span>'
+         +'<span style="color:#3b82f6;font-size:11px;font-weight:600;text-align:center">PART2</span>'
+         +'<span style="color:#f59e0b;font-size:11px;font-weight:600;text-align:center">PART3</span>'
+         +'</div>';
+        body+='<div style="max-height:300px;overflow-y:auto">';
+        // 등록된 학생 중 진도 없는 학생도 표시
+        var progressMap={};
+        for(var pi=0;pi<S.adminProgress.length;pi++){
+          var pd=S.adminProgress[pi];
+          if(pd.email)progressMap[pd.email.toLowerCase()]=pd;
+        }
+        // 이메일 목록 기준으로 표시
+        var displayEmails=S.emails.slice();
+        // 진도 있지만 목록에 없는 경우도 추가
+        for(var pk in progressMap){
+          var found2=false;
+          for(var fi=0;fi<displayEmails.length;fi++)if(displayEmails[fi].toLowerCase()===pk){found2=true;break;}
+          if(!found2)displayEmails.push(progressMap[pk].email||pk);
+        }
+        if(!displayEmails.length)body+='<p style="color:#2a3a5a;font-size:13px;text-align:center;padding:20px 0">등록된 학생이 없습니다.</p>';
+        for(var di=0;di<displayEmails.length;di++){
+          var dem=displayEmails[di];
+          var dpd=progressMap[dem.toLowerCase()]||{};
+          var p1=dpd.part1?'✅':'—';var p2=dpd.part2?'✅':'—';var p3=dpd.part3?'✅':'—';
+          var allDone=dpd.part1&&dpd.part2&&dpd.part3;
+          body+='<div style="display:grid;grid-template-columns:1fr 60px 60px 60px;gap:4px;padding:10px 12px;background:'+(allDone?'#0c1e10':'#0c1328')+';border:1px solid '+(allDone?'rgba(74,222,128,.2)':'rgba(255,255,255,.05)')+';border-radius:9px;margin-bottom:6px;align-items:center">'
+           +'<span style="color:#8a9ecc;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(dem)+(allDone?' 🎉':'')+'</span>'
+           +'<span style="text-align:center;font-size:14px">'+p1+'</span>'
+           +'<span style="text-align:center;font-size:14px">'+p2+'</span>'
+           +'<span style="text-align:center;font-size:14px">'+p3+'</span>'
+           +'</div>';
+        }
+        body+='</div>';
+        var doneCount=0;for(var ddi=0;ddi<S.adminProgress.length;ddi++)if(S.adminProgress[ddi].part1&&S.adminProgress[ddi].part2&&S.adminProgress[ddi].part3)doneCount++;
+        body+='<p style="color:#1e2e50;font-size:11.5px;margin-top:10px;text-align:center">전체 완료: '+doneCount+' / '+S.emails.length+'명</p>';
+      }
+    }
   }
   return '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px"><div class="fu" style="width:100%;max-width:420px">'
    +'<div style="text-align:center;margin-bottom:28px"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:7px 16px;margin-bottom:12px"><span style="color:#f5a623;font-weight:700;font-size:13px">🔒 VISIONFINDER · FULL CARE</span></div>'
@@ -238,7 +316,6 @@ function buildSlides(t){
   h+='<div style="position:sticky;top:0;z-index:10;background:rgba(7,12,24,.98);border-bottom:1px solid rgba(255,255,255,.05);padding:0 20px"><div style="max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;height:56px">'
    +btn("set({screen:'home'})",'background:none;color:#3a4e72;font-size:18px;padding:4px 8px','←')
    +'<div style="flex:1"><div style="font-size:10px;color:'+t.color+';font-weight:700;letter-spacing:.5px">'+t.part+'</div><div style="font-size:13px;font-weight:700;color:#dde9ff">슬라이드 '+(S.si+1)+' / '+t.slides.length+'</div></div>'
-   +btn("set({sub:'test',qi:0,ans:{},submitted:false})",'padding:8px 14px;background:'+t.color+'20;border:1px solid '+t.color+'50;border-radius:9px;color:'+t.color+';font-size:12px;font-weight:600','이해도 테스트 →')
    +'</div></div>';
   h+='<div style="max-width:520px;margin:0 auto;padding:22px 20px 140px;overflow-y:auto;width:100%">';
   if(hasTag)h+='<div style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.15);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11.5px;color:#f5a623;font-weight:600">〔 '+esc(slide.tag)+' 〕</div>';
