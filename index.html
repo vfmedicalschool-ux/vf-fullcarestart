@@ -37,6 +37,7 @@ var auth=firebase.auth();
 var db=firebase.firestore();
 var gProvider=new firebase.auth.GoogleAuthProvider();
 var ADMIN_PW='vf2025admin';
+var VERSION='v1.0';
 var OPTS=['①','②','③','④','⑤','⑥','⑦'];
 
 var TOPICS=[
@@ -146,6 +147,13 @@ function loadProgress(){
     set({adminProgress:list,progressLoading:false});
   }).catch(function(e){set({progressLoading:false});alert('Firestore 오류: '+e.message);});
 }
+function resetProgress(email){
+  if(!confirm(email+' 의 진도를 초기화할까요?'))return;
+  var emailKey=email.replace(/\./g,'_');
+  db.collection('progress').doc(emailKey).delete().then(function(){
+    alert('초기화 완료!');loadProgress();
+  }).catch(function(e){alert('오류: '+e.message);});
+}
 function goTopic(id){S.tid=id;S.sub='slides';S.si=0;S.qi=0;S.ans={};S.results=null;S.submitted=false;S.confirmed=false;set({screen:'topic'});}
 function pickAns(i){
   var t=getTopic();var q=t.qs[S.qi];
@@ -254,10 +262,10 @@ function buildLogin(){
         body+=btn('loadProgress()','width:100%;padding:9px;background:#111f42;border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#5a6e96;font-size:12px;margin-bottom:12px','🔄 새로고침');
         // 헤더
         body+='<div style="display:grid;grid-template-columns:1fr 60px 60px 60px;gap:4px;padding:8px 12px;background:#111f42;border-radius:8px;margin-bottom:6px">'
-         +'<span style="color:#3a4e72;font-size:11px;font-weight:600">이메일</span>'
-         +'<span style="color:#f5a623;font-size:11px;font-weight:600;text-align:center">PART1</span>'
-         +'<span style="color:#3b82f6;font-size:11px;font-weight:600;text-align:center">PART2</span>'
-         +'<span style="color:#f59e0b;font-size:11px;font-weight:600;text-align:center">PART3</span>'
+         +'<span style="color:#3a4e72;font-size:11px;font-weight:600">이름/이메일</span>'
+         +'<span style="color:#f5a623;font-size:11px;font-weight:600;text-align:center">P1</span>'
+         +'<span style="color:#3b82f6;font-size:11px;font-weight:600;text-align:center">P2</span>'
+         +'<span style="color:#f59e0b;font-size:11px;font-weight:600;text-align:center">P3</span>'
          +'</div>';
         body+='<div style="max-height:300px;overflow-y:auto">';
         // 등록된 학생 중 진도 없는 학생도 표시
@@ -281,12 +289,14 @@ function buildLogin(){
           var dpd=progressMap[dem.toLowerCase()]||{};
           var p1=dpd.part1?'✅':'—';var p2=dpd.part2?'✅':'—';var p3=dpd.part3?'✅':'—';
           var allDone=dpd.part1&&dpd.part2&&dpd.part3;
-          body+='<div style="display:grid;grid-template-columns:1fr 60px 60px 60px;gap:4px;padding:10px 12px;background:'+(allDone?'#0c1e10':'#0c1328')+';border:1px solid '+(allDone?'rgba(74,222,128,.2)':'rgba(255,255,255,.05)')+';border-radius:9px;margin-bottom:6px;align-items:center">'
+          body+='<div style="background:'+(allDone?'#0c1e10':'#0c1328')+';border:1px solid '+(allDone?'rgba(74,222,128,.2)':'rgba(255,255,255,.05)')+';border-radius:9px;margin-bottom:6px;padding:10px 12px">'
+           +'<div style="display:grid;grid-template-columns:1fr 50px 50px 50px 52px;gap:4px;align-items:center">'
            +'<div><div style="color:#dde9ff;font-size:12.5px;font-weight:600">'+(dname?esc(dname)+(allDone?' 🎉':''):'<span style="color:#3a4e72">이름 미등록</span>'+(allDone?' 🎉':''))+'</div><div style="color:#5a6e96;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(dem)+'</div></div>'
            +'<span style="text-align:center;font-size:14px">'+p1+'</span>'
            +'<span style="text-align:center;font-size:14px">'+p2+'</span>'
            +'<span style="text-align:center;font-size:14px">'+p3+'</span>'
-           +'</div>';
+           +btn('resetProgress(\''+esc(dem)+'\')','padding:3px 7px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:6px;color:#f87171;font-size:10px;font-weight:600','초기화')
+           +'</div></div>';
         }
         body+='</div>';
         var doneCount=0;for(var ddi=0;ddi<S.adminProgress.length;ddi++)if(S.adminProgress[ddi].part1&&S.adminProgress[ddi].part2&&S.adminProgress[ddi].part3)doneCount++;
@@ -299,6 +309,7 @@ function buildLogin(){
    +'<h1 style="color:#e8f0ff;font-size:20px;font-weight:700;line-height:1.5">VF 풀케어반 전용<br>학습 방향성 가이드 시스템</h1></div>'
    +'<div style="display:flex;background:#0c1735;border-radius:12px;padding:4px;margin-bottom:20px;border:1px solid rgba(255,255,255,.07)">'+tabs+'</div>'
    +'<div style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:28px 22px">'+body+'</div>'
+   +'<p style="text-align:center;color:#1e2e50;font-size:11px;margin-top:16px">VISIONFINDER FULL CARE · '+VERSION+'</p>'
    +'</div></div>';
 }
 
@@ -318,7 +329,7 @@ function buildHome(){
    +'<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:6px 12px"><span style="color:#5a6e96;font-size:12px">👤 '+esc(user?user.email:'')+' </span>'+btn('logout()','background:none;color:#3a4e72;font-size:11.5px;padding:2px 6px;border-left:1px solid rgba(255,255,255,.08);margin-left:4px','로그아웃')+'</div></div>'
    +'<div class="fu" style="text-align:center;margin-bottom:32px"><div style="display:inline-flex;align-items:center;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:6px 14px;margin-bottom:14px"><span style="color:#f5a623;font-weight:700;font-size:12px">🎓 VISIONFINDER FULL CARE</span></div><h1 style="color:#e8f0ff;font-size:22px;font-weight:900;margin-bottom:8px">학습 방향성 가이드</h1><p style="color:#3a4e72;font-size:13px">순서대로 학습하고 이해도 테스트를 통과하세요</p></div>'
    +'<div style="background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:24px"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:13px;color:#5a6e96;font-weight:600">전체 진도</span><span style="color:#f5a623;font-size:12px;font-weight:600">'+pc+' / '+TOPICS.length+' 완료</span></div><div style="height:6px;background:#0a1020;border-radius:99px"><div style="height:100%;width:'+(pc/TOPICS.length*100)+'%;background:linear-gradient(90deg,#f5a623,#e07c0a);border-radius:99px;transition:width .6s ease"></div></div></div>'
-   +cards+'</div></div>';
+   +cards+'<p style="text-align:center;color:#1e2e50;font-size:11px;margin-top:8px">VISIONFINDER FULL CARE · '+VERSION+'</p></div></div>';
 }
 
 function buildTopic(){
