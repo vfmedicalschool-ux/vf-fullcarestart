@@ -115,13 +115,13 @@ const S = {
 };
 function set(obj){ Object.assign(S,obj); render(); }
 
-// ── 스토리지 ──
+// ── 스토리지 (localStorage) ──
 async function loadEmails(){
-  try{ const r=await window.storage.get('allowed_emails',true); if(r) S.allowedEmails=JSON.parse(r.value); }catch(e){ S.allowedEmails=[]; }
+  try{ const r=localStorage.getItem('vf_allowed_emails'); if(r) S.allowedEmails=JSON.parse(r); }catch(e){ S.allowedEmails=[]; }
 }
 async function saveEmails(list){
   S.allowedEmails=list;
-  await window.storage.set('allowed_emails',JSON.stringify(list),true);
+  localStorage.setItem('vf_allowed_emails',JSON.stringify(list));
 }
 
 // ── Firebase Auth (첨부파일과 동일) ──
