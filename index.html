@@ -92,26 +92,40 @@ function set(o){for(var k in o)S[k]=o[k];render();}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getTopic(){return TOPICS.filter(function(x){return x.id===S.tid;})[0];}
 
-function loadEmails(){try{var r=localStorage.getItem('vf_e');if(r)S.emails=JSON.parse(r);}catch(e){S.emails=[];}}
-function saveEmails(l){S.emails=l;try{localStorage.setItem('vf_e',JSON.stringify(l));}catch(e){}}
+function loadEmails(cb){
+  db.collection('config').doc('allowedEmails').get().then(function(doc){
+    S.emails=doc.exists?(doc.data().list||[]):[];
+    if(cb)cb(); else render();
+  }).catch(function(){
+    try{var r=localStorage.getItem('vf_e');if(r)S.emails=JSON.parse(r);}catch(e){S.emails=[];}
+    if(cb)cb(); else render();
+  });
+}
+function saveEmails(l){
+  S.emails=l;
+  db.collection('config').doc('allowedEmails').set({list:l}).catch(function(e){console.log('save err:',e);});
+  try{localStorage.setItem('vf_e',JSON.stringify(l));}catch(e){}
+}
 
 auth.onAuthStateChanged(function(user){
   if(user){
     var cached=sessionStorage.getItem('vf_ok');
     if(cached===user.email.toLowerCase()){S.screen='home';render();return;}
-    loadEmails();
-    var found=false;
-    for(var i=0;i<S.emails.length;i++){
-      var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];
-      if(em.toLowerCase()===user.email.toLowerCase()){found=true;break;}
-    }
-    if(found){sessionStorage.setItem('vf_ok',user.email.toLowerCase());S.screen='home';S.loginMsg='';}
-    else{auth.signOut();S.loginMsg='등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';}
+    loadEmails(function(){
+      var found=false;
+      for(var i=0;i<S.emails.length;i++){
+        var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];
+        if(em.toLowerCase()===user.email.toLowerCase()){found=true;break;}
+      }
+      if(found){sessionStorage.setItem('vf_ok',user.email.toLowerCase());S.screen='home';S.loginMsg='';}
+      else{auth.signOut();S.loginMsg='등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';}
+      render();
+    });
   } else {
     sessionStorage.removeItem('vf_ok');
     S.screen='login';
+    render();
   }
-  render();
 });
 
 function gLogin(){
@@ -418,7 +432,7 @@ function buildResult(t){
    +'<h2 style="font-size:20px;font-weight:700;color:#e8f0ff;margin-bottom:8px">'+(r.passed?'통과!':'아쉽네요')+'</h2>'
    +'<div style="font-size:48px;font-weight:900;color:'+(r.passed?'#4ade80':'#f5a623')+';margin:16px 0">'+r.pct+'점</div>'
    +'<p style="color:#5a6e96;font-size:13px;margin-bottom:24px">'+r.correct+'/'+r.total+'문제 정답 · 합격 기준 '+t.pass+'점</p>'
-   +(r.passed?'<p style="color:#4ade80;font-size:13px;margin-bottom:20px">✅ 다음 파트가 잠금 해제되었습니다!</p>':'<p style="color:#f87171;font-size:13px;margin-bottom:20px">슬라이드를 다시 학습하고 재도전해보세요.</p>')
+   +(r.passed?(t.id===TOPICS.length?'<p style="color:#4ade80;font-size:13px;margin-bottom:20px">🎊 모든 과정을 통과하셨습니다.<br>궁금한 점은 사전 상담 때 질문해주세요 :)</p>':'<p style="color:#4ade80;font-size:13px;margin-bottom:20px">✅ 다음 파트가 잠금 해제되었습니다!</p>'):'<p style="color:#f87171;font-size:13px;margin-bottom:20px">슬라이드를 다시 학습하고 재도전해보세요.</p>')
    +'<div style="display:flex;flex-direction:column;gap:10px">'
    +btn("set({screen:'home'})",'padding:13px;background:linear-gradient(135deg,'+t.color+','+t.dark+');border-radius:10px;color:#000;font-weight:700;font-size:14px','홈으로 돌아가기');
   if(!r.passed)h+=btn("set({sub:'test',qi:0,ans:{},submitted:false,results:null})",'padding:13px;background:#0c1735;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#5a6e96;font-size:14px','다시 풀기');
