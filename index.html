@@ -145,7 +145,11 @@ function loadProgress(){
     snap.forEach(function(doc){list.push(doc.data());});
     list.sort(function(a,b){return (a.email||'').localeCompare(b.email||'');});
     set({adminProgress:list,progressLoading:false});
-  }).catch(function(e){set({progressLoading:false});alert('Firestore 오류: '+e.message);});
+    if(list.length===0) alert('저장된 진도 데이터가 없습니다.\n학생이 아직 테스트를 완료하지 않았거나 Firestore 규칙을 확인해주세요.');
+  }).catch(function(e){
+    set({progressLoading:false});
+    alert('Firestore 오류: '+e.message+'\n\nFirebase Console → Firestore → 규칙에서\nallow read, write: if true; 로 설정해주세요.');
+  });
 }
 function resetProgress(email){
   if(!confirm(email+' 의 진도를 초기화할까요?'))return;
@@ -231,7 +235,7 @@ function buildLogin(){
     var isEmailTab=S.adminTab2!=='progress';
     body='<div style="display:flex;background:#111f42;border-radius:10px;padding:3px;margin-bottom:16px">'
      +btn("set({adminTab2:'email'})",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(isEmailTab?'#1d4ed8':'transparent')+';color:'+(isEmailTab?'#fff':'#3a4e72'),'📋 이메일 관리')
-     +btn("set({adminTab2:'progress',adminProgress:[],progressLoading:false})",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(!isEmailTab?'#1d4ed8':'transparent')+';color:'+(!isEmailTab?'#fff':'#3a4e72'),'📊 진도 확인')
+     +btn("set({adminTab2:'progress',adminProgress:[],progressLoading:false});loadProgress()",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(!isEmailTab?'#1d4ed8':'transparent')+';color:'+(!isEmailTab?'#fff':'#3a4e72'),'📊 진도 확인')
      +'</div>';
     if(isEmailTab){
       body+='<p style="color:#f5a623;font-weight:700;font-size:13px;margin-bottom:4px">⚙️ 허용 Google 계정 관리</p><p style="color:#3a4e72;font-size:11.5px;margin-bottom:12px">등록된 Gmail로만 Google 로그인 가능합니다.</p>';
