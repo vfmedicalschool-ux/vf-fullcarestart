@@ -125,6 +125,8 @@ auth.getRedirectResult().then(function(result){
     });
   }
 }).catch(function(e){console.log('redirect result error:',e);});
+
+auth.onAuthStateChanged(function(user){
   if(user){
     var cached=sessionStorage.getItem('vf_ok');
     if(cached===user.email.toLowerCase()){S.screen='home';render();return;}
