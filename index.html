@@ -107,7 +107,24 @@ function saveEmails(l){
   try{localStorage.setItem('vf_e',JSON.stringify(l));}catch(e){}
 }
 
-auth.onAuthStateChanged(function(user){
+var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+
+// 리디렉션 후 결과 처리
+auth.getRedirectResult().then(function(result){
+  if(result&&result.user){
+    var user=result.user;
+    loadEmails(function(){
+      var found=false;
+      for(var i=0;i<S.emails.length;i++){
+        var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];
+        if(em.toLowerCase()===user.email.toLowerCase()){found=true;break;}
+      }
+      if(found){sessionStorage.setItem('vf_ok',user.email.toLowerCase());S.screen='home';S.loginMsg='';}
+      else{auth.signOut();S.loginMsg='등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';}
+      render();
+    });
+  }
+}).catch(function(e){console.log('redirect result error:',e);});
   if(user){
     var cached=sessionStorage.getItem('vf_ok');
     if(cached===user.email.toLowerCase()){S.screen='home';render();return;}
@@ -130,13 +147,31 @@ auth.onAuthStateChanged(function(user){
 
 function gLogin(){
   S.loginMsg='';render();
-  auth.signInWithPopup(gProvider).catch(function(e){
-    if(e.code!=='auth/popup-closed-by-user')S.loginMsg='로그인 오류: '+e.message;
-    render();
-  });
+  if(isIOS){
+    auth.signInWithRedirect(gProvider).catch(function(e){
+      S.loginMsg='로그인 오류: '+e.message;render();
+    });
+  } else {
+    auth.signInWithPopup(gProvider).catch(function(e){
+      if(e.code==='auth/popup-blocked'){
+        // 팝업 차단 시 리디렉트로 fallback
+        auth.signInWithRedirect(gProvider);
+      } else if(e.code!=='auth/popup-closed-by-user'){
+        S.loginMsg='로그인 오류: '+e.message;render();
+      }
+    });
+  }
 }
 function logout(){auth.signOut();S.unlocked=[1];S.passed={};}
-function doAdminLogin(){if(S.adminPw===ADMIN_PW)set({adminOk:true,loginMsg:''});else set({loginMsg:'비밀번호가 틀렸습니다.'});}
+function doAdminLogin(){
+  if(S.adminPw===ADMIN_PW){
+    loadEmails(function(){
+      set({adminOk:true,loginMsg:''});
+    });
+  } else {
+    set({loginMsg:'비밀번호가 틀렸습니다.'});
+  }
+}
 function addEmail(){
   var e=(S.newEmail||'').trim().toLowerCase();
   var n=(S.newName||'').trim();
