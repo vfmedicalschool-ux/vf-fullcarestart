@@ -130,14 +130,20 @@ auth.onAuthStateChanged(function(user){
   if(user){
     var cached=sessionStorage.getItem('vf_ok');
     if(cached===user.email.toLowerCase()){S.screen='home';render();return;}
+    S.loginMsg='✅ Google 로그인 완료! 확인 중...';render();
     loadEmails(function(){
       var found=false;
       for(var i=0;i<S.emails.length;i++){
         var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];
         if(em.toLowerCase()===user.email.toLowerCase()){found=true;break;}
       }
-      if(found){sessionStorage.setItem('vf_ok',user.email.toLowerCase());S.screen='home';S.loginMsg='';}
-      else{auth.signOut();S.loginMsg='등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';}
+      if(found){
+        sessionStorage.setItem('vf_ok',user.email.toLowerCase());
+        S.screen='home';S.loginMsg='';
+      } else {
+        auth.signOut();
+        S.loginMsg='❌ '+user.email+'\n등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';
+      }
       render();
     });
   } else {
