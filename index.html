@@ -59,7 +59,7 @@ var TOPICS=[
 {id:2,part:"PART 2",title:"과목별 학습법",subtitle:"일반화학 · 유기화학 · 생물학",color:"#3b82f6",dark:"#1d4ed8",icon:"📚",pass:80,
  slides:[
   {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"화학 학습법",yt:"iJ9rw8Vz56c",pts:["박인규T 커리큘럼(1500제, 2000제, 기출올인원)에서 가장 중요한 커리큘럼은 무엇인가?","APS 학습법을 체득해야하는 이유는 무엇이고, 무엇을 체득하기 위해서인가?","화학은 빠르고 + 정확히 라는 2마리 토끼를 잡아야한다. 빠르게 와 정확하게 중에 무엇부터 잡아야하는가?","2000제를 수강할 때 어떤 코드번호 순서로 수강해야하는가? 그리고 복습은 어떻게 해야하는가?","문제를 풀다 개념이 헷갈리거나 풀어도 여전히 개운하지 않을 때는 어떻게 해야하는가?"]},
-  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"유기화학 학습법",yt:"kjEeEgdEmhA",pts:["유기화학은 강의보다 왜 기본서 중심으로 학습해야하는가?","1회독, 2회독 완료 시 각 단계에서 반드시 깨달아야 할 핵심 인식은?","유기화학을 매일 최소 몇시간씩 공부해야하는가? 유기화학을 잘해두면 왜 효자과목이 되는가?","1회독 때 기본서의 어떤 문제만 풀면서 23단원 아민까지 쭉 나아가야하는가? 그 다음 2회독 때 어떤 문제를 풀어야하는가?","약사랑 유기화학 활용 방법은 무엇인가?"]},
+  {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"유기화학 학습법",yt:"GyZL-JS6SLE",pts:["유기화학은 강의보다 왜 기본서 중심으로 학습해야하는가?","1회독, 2회독 완료 시 각 단계에서 반드시 깨달아야 할 핵심 인식은?","유기화학을 매일 최소 몇시간씩 공부해야하는가? 유기화학을 잘해두면 왜 효자과목이 되는가?","1회독 때 기본서의 어떤 문제만 풀면서 23단원 아민까지 쭉 나아가야하는가? 그 다음 2회독 때 어떤 문제를 풀어야하는가?","약사랑 유기화학 활용 방법은 무엇인가?"]},
   {tag:"영상 시청 후 스스로 답변할 수 있어야하는 질문",title:"생물 학습법",yt:"WLi3l4dj8Bo",pts:["처음부터 꼼꼼히 암기하는 학습이 좋지 않은 이유는 무엇인가?","암기를 본격적으로 해야하는 시기는 언제부터 인가?","생물 오개념이 생기는 2가지 이유는 무엇이고, 이를 보정하기 위해서 어떻게 학습해야하는가?","기본서를 왜 읽어야하고, 어떻게 읽어야 하는가?","단권화는 언제부터 시작해야 하는가? 그리고 목적은 무엇인가?"]}
  ],
  qs:[
@@ -108,6 +108,8 @@ function saveEmails(l){
 }
 
 var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+var isAndroid=/Android/.test(navigator.userAgent);
+var isMobile=isIOS||isAndroid;
 
 // 리디렉션 후 결과 처리
 auth.getRedirectResult().then(function(result){
@@ -155,14 +157,13 @@ auth.onAuthStateChanged(function(user){
 
 function gLogin(){
   S.loginMsg='';render();
-  if(isIOS){
+  if(isMobile){
     auth.signInWithRedirect(gProvider).catch(function(e){
       S.loginMsg='로그인 오류: '+e.message;render();
     });
   } else {
     auth.signInWithPopup(gProvider).catch(function(e){
       if(e.code==='auth/popup-blocked'){
-        // 팝업 차단 시 리디렉트로 fallback
         auth.signInWithRedirect(gProvider);
       } else if(e.code!=='auth/popup-closed-by-user'){
         S.loginMsg='로그인 오류: '+e.message;render();
