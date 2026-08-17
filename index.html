@@ -36,7 +36,7 @@ firebase.initializeApp({
 var auth=firebase.auth();
 var db=firebase.firestore();
 var gProvider=new firebase.auth.GoogleAuthProvider();
-var ADMIN_PW='vf2025admin';
+var ADMIN_EMAIL='vfmedicalschool@gmail.com';
 var VERSION='V3.0_Jun26';
 var OPTS=['①','②','③','④','⑤','⑥','⑦'];
 
@@ -84,7 +84,7 @@ var S={
   screen:'login',sub:'slides',tid:null,si:0,qi:0,
   ans:{},submitted:false,results:null,
   unlocked:[1],passed:{},confirmed:false,
-  loginMsg:'',adminPw:'',adminOk:false,
+  loginMsg:'',isAdmin:false,
   adminTab:'student',emails:[],newEmail:'',newName:'',adminMsg:'',
   adminTab2:'email',adminProgress:[],progressLoading:false
 };
@@ -114,33 +114,31 @@ var isMobile=isIOS||isAndroid;
 // 리디렉션 후 결과 처리
 auth.getRedirectResult().then(function(result){
   if(result&&result.user){
-    var user=result.user;
-    loadEmails(function(){
-      var found=false;
-      for(var i=0;i<S.emails.length;i++){
-        var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];
-        if(em.toLowerCase()===user.email.toLowerCase()){found=true;break;}
-      }
-      if(found){sessionStorage.setItem('vf_ok',user.email.toLowerCase());S.screen='home';S.loginMsg='';}
-      else{auth.signOut();S.loginMsg='등록되지 않은 계정입니다. 선생님께 이메일 등록을 요청해주세요.';}
-      render();
-    });
+    // onAuthStateChanged가 처리하므로 여기선 pass
   }
 }).catch(function(e){console.log('redirect result error:',e);});
 
 auth.onAuthStateChanged(function(user){
   if(user){
+    var email=user.email.toLowerCase();
+    if(email===ADMIN_EMAIL.toLowerCase()){
+      sessionStorage.setItem('vf_ok',email);
+      S.isAdmin=true; S.screen='admin'; S.loginMsg='';
+      loadEmails(function(){ render(); });
+      return;
+    }
+    S.isAdmin=false;
     var cached=sessionStorage.getItem('vf_ok');
-    if(cached===user.email.toLowerCase()){S.screen='home';render();return;}
+    if(cached===email){S.screen='home';render();return;}
     S.loginMsg='✅ Google 로그인 완료! 확인 중...';render();
     loadEmails(function(){
       var found=false;
       for(var i=0;i<S.emails.length;i++){
         var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];
-        if(em.toLowerCase()===user.email.toLowerCase()){found=true;break;}
+        if(em.toLowerCase()===email){found=true;break;}
       }
       if(found){
-        sessionStorage.setItem('vf_ok',user.email.toLowerCase());
+        sessionStorage.setItem('vf_ok',email);
         S.screen='home';S.loginMsg='';
       } else {
         auth.signOut();
@@ -150,9 +148,10 @@ auth.onAuthStateChanged(function(user){
     });
   } else {
     sessionStorage.removeItem('vf_ok');
-    S.screen='login';
+    S.screen='login'; S.isAdmin=false;
     render();
   }
+});
 });
 
 function gLogin(){
@@ -171,16 +170,7 @@ function gLogin(){
     });
   }
 }
-function logout(){auth.signOut();S.unlocked=[1];S.passed={};}
-function doAdminLogin(){
-  if(S.adminPw===ADMIN_PW){
-    loadEmails(function(){
-      set({adminOk:true,loginMsg:''});
-    });
-  } else {
-    set({loginMsg:'비밀번호가 틀렸습니다.'});
-  }
-}
+function logout(){auth.signOut();S.unlocked=[1];S.passed={};S.isAdmin=false;}
 function addEmail(){
   var e=(S.newEmail||'').trim().toLowerCase();
   var n=(S.newName||'').trim();
@@ -262,9 +252,13 @@ function submitTest(){
 
 function render(){
   var app=document.getElementById('app');
+  // sessionStorage 우회 차단: auth 상태와 screen 일치 검증
+  if((S.screen==='home'||S.screen==='topic')&&!auth.currentUser){S.screen='login';S.isAdmin=false;}
+  if(S.screen==='admin'&&(!auth.currentUser||auth.currentUser.email.toLowerCase()!==ADMIN_EMAIL.toLowerCase())){S.screen='login';S.isAdmin=false;}
   if(S.screen==='login')app.innerHTML=buildLogin();
   else if(S.screen==='home')app.innerHTML=buildHome();
   else if(S.screen==='topic')app.innerHTML=buildTopic();
+  else if(S.screen==='admin')app.innerHTML=buildAdmin();
 }
 
 function mk(tag,style,inner,attrs){return '<'+tag+(style?' style="'+style+'"':'')+(attrs?' '+attrs:'')+'>'+inner+'</'+tag+'>';}
@@ -274,30 +268,22 @@ function buildLogin(){
   var isSt=S.adminTab==='student';
   var tabStyle1='flex:1;padding:10px;border-radius:9px;font-size:13.5px;background:'+(isSt?'#f5a623':'transparent')+';color:'+(isSt?'#000':'#3a4e72')+';font-weight:'+(isSt?700:400);
   var tabStyle2='flex:1;padding:10px;border-radius:9px;font-size:13.5px;background:'+(!isSt?'#f5a623':'transparent')+';color:'+(!isSt?'#000':'#3a4e72')+';font-weight:'+(!isSt?700:400);
-  var tabs=btn("set({adminTab:'student',loginMsg:'',adminOk:false})",tabStyle1,'📖 학생 로그인')
-          +btn("set({adminTab:'admin',loginMsg:'',adminOk:false})",tabStyle2,'⚙️ 관리자');
+  var tabs=btn("set({adminTab:'student',loginMsg:''})",tabStyle1,'📖 학생 로그인')
+          +btn("set({adminTab:'admin',loginMsg:''})",tabStyle2,'⚙️ 관리자');
   var body='';
   if(isSt){
     body='<p style="color:#5a6e96;font-size:13px;margin-bottom:22px;line-height:1.7;text-align:center">등록된 Google 계정으로 로그인하세요.<br><span style="font-size:11.5px;color:#2a3a5a">선생님께 등록된 계정만 입장 가능합니다.</span></p>';
     body+='<div onclick="gLogin()" style="width:100%;padding:13px 16px;background:#fff;border:1px solid #dadce0;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;font-size:14px;font-weight:500;color:#3c4043;box-sizing:border-box">'
      +'<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>'
      +'Google 계정으로 로그인</div>';
-    if(S.loginMsg)body+='<div style="margin-top:14px;padding:12px 14px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:9px"><p style="color:#f87171;font-size:12.5px;margin:0">'+esc(S.loginMsg)+'</p></div>';
-  } else if(!S.adminOk){
-    body='<p style="color:#5a6e96;font-size:13px;margin-bottom:16px">관리자 비밀번호를 입력하세요.</p>';
-    body+='<input type="password" placeholder="비밀번호" value="'+esc(S.adminPw)+'" oninput="S.adminPw=this.value" onkeydown="if(event.key===\'Enter\')doAdminLogin()" style="width:100%;background:#111f42;border:1.5px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;color:#dde9ff;font-size:14px;margin-bottom:12px;box-sizing:border-box">';
-    if(S.loginMsg)body+='<p style="color:#f87171;font-size:12.5px;margin-bottom:10px">'+esc(S.loginMsg)+'</p>';
-    body+=btn('doAdminLogin()','width:100%;padding:13px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:10px;color:#fff;font-weight:700;font-size:14px','관리자 로그인');
+    if(S.loginMsg)body+='<div style="margin-top:14px;padding:12px 14px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:9px"><p style="color:#f87171;font-size:12.5px;margin:0;white-space:pre-line">'+esc(S.loginMsg)+'</p></div>';
   } else {
-    // 관리자 탭 내부 탭
-    var isEmailTab=S.adminTab2!=='progress';
-    body='<div style="display:flex;background:#111f42;border-radius:10px;padding:3px;margin-bottom:16px">'
-     +btn("set({adminTab2:'email'})",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(isEmailTab?'#1d4ed8':'transparent')+';color:'+(isEmailTab?'#fff':'#3a4e72'),'📋 이메일 관리')
-     +btn("set({adminTab2:'progress',adminProgress:[],progressLoading:false});loadProgress()",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(!isEmailTab?'#1d4ed8':'transparent')+';color:'+(!isEmailTab?'#fff':'#3a4e72'),'📊 진도 확인')
-     +'</div>';
-    if(isEmailTab){
-      body+='<p style="color:#f5a623;font-weight:700;font-size:13px;margin-bottom:4px">⚙️ 허용 Google 계정 관리</p><p style="color:#3a4e72;font-size:11.5px;margin-bottom:12px">등록된 Gmail로만 Google 로그인 가능합니다.</p>';
-      body+='<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">'
+    body='<p style="color:#5a6e96;font-size:13px;margin-bottom:22px;line-height:1.7;text-align:center">관리자 Google 계정으로 로그인하세요.<br><span style="font-size:11.5px;color:#2a3a5a">관리자 전용 계정만 입장 가능합니다.</span></p>';
+    body+='<div onclick="gLogin()" style="width:100%;padding:13px 16px;background:#fff;border:1px solid #dadce0;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;font-size:14px;font-weight:500;color:#3c4043;box-sizing:border-box">'
+     +'<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>'
+     +'관리자 Google 계정으로 로그인</div>';
+    if(S.loginMsg)body+='<div style="margin-top:14px;padding:12px 14px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:9px"><p style="color:#f87171;font-size:12.5px;margin:0">'+esc(S.loginMsg)+'</p></div>';
+  }
        +'<input type="text" placeholder="학생 이름 (예: 홍길동)" value="'+esc(S.newName)+'" oninput="S.newName=this.value" style="background:#0c1328;border:1.5px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 12px;color:#dde9ff;font-size:13.5px">'
        +'<div style="display:flex;gap:8px">'
        +'<input type="email" placeholder="student@gmail.com" value="'+esc(S.newEmail)+'" oninput="S.newEmail=this.value" onkeydown="if(event.key===\'Enter\')addEmail()" style="flex:1;background:#0c1328;border:1.5px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 12px;color:#dde9ff;font-size:13.5px">'
@@ -374,6 +360,83 @@ function buildLogin(){
    +'<p style="text-align:center;color:#1e2e50;font-size:11px;margin-top:16px">VISIONFINDER FULL CARE · '+VERSION+'</p>'
    +'<div style="text-align:center;margin-top:14px"><a href="https://vfmedicalschool-ux.github.io/" style="display:inline-flex;align-items:center;gap:6px;color:#3a4e72;font-size:12.5px;text-decoration:none;padding:8px 16px;border:1px solid rgba(255,255,255,.08);border-radius:20px;background:#0c1735">← 풀케어반 등록 페이지로</a></div>'
    +'</div></div>';
+}
+
+function buildAdmin(){
+  var user=auth.currentUser;
+  var isEmailTab=S.adminTab2!=='progress';
+  var body='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+   +'<div style="display:flex;align-items:center;gap:8px;background:#0c1735;border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:6px 12px">'
+   +'<span style="color:#5a6e96;font-size:12px">👤 '+esc(user?user.email:'')+' </span>'
+   +btn('logout()','background:none;color:#3a4e72;font-size:11.5px;padding:2px 6px;border-left:1px solid rgba(255,255,255,.08);margin-left:4px','로그아웃')
+   +'</div></div>';
+  body+='<div style="display:flex;background:#111f42;border-radius:10px;padding:3px;margin-bottom:16px">'
+   +btn("set({adminTab2:'email'})",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(isEmailTab?'#1d4ed8':'transparent')+';color:'+(isEmailTab?'#fff':'#3a4e72'),'📋 이메일 관리')
+   +btn("set({adminTab2:'progress',adminProgress:[],progressLoading:false});loadProgress()",'flex:1;padding:8px;border-radius:8px;font-size:12.5px;background:'+(!isEmailTab?'#1d4ed8':'transparent')+';color:'+(!isEmailTab?'#fff':'#3a4e72'),'📊 진도 확인')
+   +'</div>';
+  if(isEmailTab){
+    body+='<p style="color:#f5a623;font-weight:700;font-size:13px;margin-bottom:4px">⚙️ 허용 Google 계정 관리</p><p style="color:#3a4e72;font-size:11.5px;margin-bottom:12px">등록된 Gmail로만 Google 로그인 가능합니다.</p>';
+    body+='<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">'
+     +'<input type="text" placeholder="학생 이름 (예: 홍길동)" value="'+esc(S.newName)+'" oninput="S.newName=this.value" style="background:#0c1328;border:1.5px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 12px;color:#dde9ff;font-size:13.5px">'
+     +'<div style="display:flex;gap:8px">'
+     +'<input type="email" placeholder="student@gmail.com" value="'+esc(S.newEmail)+'" oninput="S.newEmail=this.value" onkeydown="if(event.key===\'Enter\')addEmail()" style="flex:1;background:#0c1328;border:1.5px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 12px;color:#dde9ff;font-size:13.5px">'
+     +btn('addEmail()','padding:10px 16px;background:linear-gradient(135deg,#f5a623,#e07c0a);border-radius:9px;color:#000;font-weight:700;font-size:13.5px;flex-shrink:0','추가')
+     +'</div></div>';
+    if(S.adminMsg)body+='<p style="color:'+(S.adminMsg.indexOf('완료')>=0?'#4ade80':'#f87171')+';font-size:12.5px;margin-bottom:10px">'+esc(S.adminMsg)+'</p>';
+    body+='<div style="max-height:260px;overflow-y:auto">';
+    if(!S.emails.length)body+='<p style="color:#2a3a5a;font-size:13px;text-align:center;padding:20px 0">등록된 계정이 없습니다.</p>';
+    for(var i=0;i<S.emails.length;i++){
+      var eObj=typeof S.emails[i]==='object'?S.emails[i]:{email:S.emails[i],name:''};
+      body+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#111f42;border-radius:9px;margin-bottom:8px">'
+       +'<div style="min-width:0"><div style="color:#dde9ff;font-size:13px;font-weight:600">'+(eObj.name?esc(eObj.name):'<span style="color:#3a4e72;font-weight:400">이름 미등록</span>')+'</div><div style="color:#5a6e96;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(eObj.email)+'</div></div>'
+       +btn('removeEmail(\''+esc(eObj.email)+'\')','background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:4px 10px;color:#f87171;font-size:12px;font-weight:600;flex-shrink:0','삭제')
+       +'</div>';
+    }
+    body+='</div><p style="color:#1e2e50;font-size:11.5px;margin-top:12px;text-align:center">총 '+S.emails.length+'명 등록됨</p>';
+  } else {
+    body+='<p style="color:#f5a623;font-weight:700;font-size:13px;margin-bottom:12px">📊 학생별 파트 완료 현황</p>';
+    if(!S.adminProgress.length&&!S.progressLoading){
+      body+=btn('loadProgress()','width:100%;padding:12px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:10px;color:#fff;font-weight:700;font-size:14px','🔄 진도 불러오기');
+    } else if(S.progressLoading){
+      body+='<p style="color:#3a4e72;font-size:13px;text-align:center;padding:20px 0">불러오는 중...</p>';
+    } else {
+      body+=btn('loadProgress()','width:100%;padding:9px;background:#111f42;border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#5a6e96;font-size:12px;margin-bottom:12px','🔄 새로고침');
+      body+='<div style="display:grid;grid-template-columns:1fr 60px 60px 60px;gap:4px;padding:8px 12px;background:#111f42;border-radius:8px;margin-bottom:6px">'
+       +'<span style="color:#3a4e72;font-size:11px;font-weight:600">이름/이메일</span>'
+       +'<span style="color:#f5a623;font-size:11px;font-weight:600;text-align:center">P1</span>'
+       +'<span style="color:#3b82f6;font-size:11px;font-weight:600;text-align:center">P2</span>'
+       +'<span style="color:#f59e0b;font-size:11px;font-weight:600;text-align:center">P3</span>'
+       +'</div>';
+      body+='<div style="max-height:300px;overflow-y:auto">';
+      var progressMap={};
+      for(var pi=0;pi<S.adminProgress.length;pi++){var pd=S.adminProgress[pi];if(pd.email)progressMap[pd.email.toLowerCase()]=pd;}
+      var displayEmails=S.emails.map(function(x){return typeof x==='object'?x:{email:x,name:''};});
+      for(var pk in progressMap){
+        var found2=false;
+        for(var fi=0;fi<displayEmails.length;fi++)if(displayEmails[fi].email.toLowerCase()===pk){found2=true;break;}
+        if(!found2)displayEmails.push({email:progressMap[pk].email||pk,name:''});
+      }
+      if(!displayEmails.length)body+='<p style="color:#2a3a5a;font-size:13px;text-align:center;padding:20px 0">등록된 학생이 없습니다.</p>';
+      for(var di=0;di<displayEmails.length;di++){
+        var ditem=displayEmails[di];var dem=ditem.email;var dname=ditem.name||'';
+        var dpd=progressMap[dem.toLowerCase()]||{};
+        var p1=dpd.part1?'✅':'—';var p2=dpd.part2?'✅':'—';var p3=dpd.part3?'✅':'—';
+        var allDone=dpd.part1&&dpd.part2&&dpd.part3;
+        body+='<div style="background:'+(allDone?'#0c1e10':'#0c1328')+';border:1px solid '+(allDone?'rgba(74,222,128,.2)':'rgba(255,255,255,.05)')+';border-radius:9px;margin-bottom:6px;padding:10px 12px">'
+         +'<div style="display:grid;grid-template-columns:1fr 50px 50px 50px 52px;gap:4px;align-items:center">'
+         +'<div><div style="color:#dde9ff;font-size:12.5px;font-weight:600">'+(dname?esc(dname)+(allDone?' 🎉':''):'<span style="color:#3a4e72">이름 미등록</span>'+(allDone?' 🎉':''))+'</div><div style="color:#5a6e96;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(dem)+'</div></div>'
+         +'<span style="text-align:center;font-size:14px">'+p1+'</span>'
+         +'<span style="text-align:center;font-size:14px">'+p2+'</span>'
+         +'<span style="text-align:center;font-size:14px">'+p3+'</span>'
+         +btn('resetProgress(\''+esc(dem)+'\')','padding:3px 7px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:6px;color:#f87171;font-size:10px;font-weight:600','초기화')
+         +'</div></div>';
+      }
+      body+='</div>';
+      var doneCount=0;for(var ddi=0;ddi<S.adminProgress.length;ddi++)if(S.adminProgress[ddi].part1&&S.adminProgress[ddi].part2&&S.adminProgress[ddi].part3)doneCount++;
+      body+='<p style="color:#1e2e50;font-size:11.5px;margin-top:10px;text-align:center">전체 완료: '+doneCount+' / '+S.emails.length+'명</p>';
+    }
+  }
+  return '<div style="min-height:100vh;background:#070c18;padding:24px 20px"><div style="max-width:480px;margin:0 auto">'+body+'</div></div>';
 }
 
 function buildHome(){
