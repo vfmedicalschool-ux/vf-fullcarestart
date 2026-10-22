@@ -94,16 +94,39 @@ function getTopic(){return TOPICS.filter(function(x){return x.id===S.tid;})[0];}
 
 function loadEmails(cb){
   db.collection('config').doc('allowedEmails').get().then(function(doc){
-    S.emails=doc.exists?(doc.data().list||[]):[];
+    S.emails=doc.exists?(doc.data().list||[]):[]; S.emailsOk=true;
     if(cb)cb(); else render();
   }).catch(function(){
     try{var r=localStorage.getItem('vf_e');if(r)S.emails=JSON.parse(r);}catch(e){S.emails=[];}
     if(cb)cb(); else render();
   });
 }
+// 보안(2026-10-22): 학생은 명단 전체가 아니라 fullcareAllowed/{본인 이메일} 문서만 확인한다. 관리자가 명단을 불러오거나 저장할 때 자동 동기화.
+function syncAllowed(){
+  if(!S.isAdmin||!S.emailsOk)return;
+  var want={};
+  S.emails.forEach(function(x){var e=((typeof x==='object'?x.email:x)||'').trim().toLowerCase();if(e)want[e]=1;});
+  db.collection('fullcareAllowed').get().then(function(snap){
+    var have={};snap.forEach(function(d){have[d.id]=1;});
+    var batch=db.batch(),n=0;
+    Object.keys(want).forEach(function(e){if(!have[e]){batch.set(db.collection('fullcareAllowed').doc(e),{email:e});n++;}});
+    if(n)return batch.commit();
+  }).catch(function(e){console.log('sync err:',e);});
+}
+function checkAllowed(email,cb){
+  db.collection('fullcareAllowed').doc(email).get().then(function(d){
+    if(d.exists){cb(true);return;}
+    // 전환 기간 호환: 이전 명단 문서(규칙상 관리자 전용이 되면 실패 → 미등록 처리)
+    db.collection('config').doc('allowedEmails').get().then(function(doc){
+      var l=doc.exists?(doc.data().list||[]):[];var f=false;
+      for(var i=0;i<l.length;i++){var em=typeof l[i]==='object'?l[i].email:l[i];if((em||'').toLowerCase()===email){f=true;break;}}
+      cb(f);
+    }).catch(function(){cb(false);});
+  }).catch(function(){cb(false);});
+}
 function saveEmails(l){
   S.emails=l;
-  db.collection('config').doc('allowedEmails').set({list:l}).catch(function(e){console.log('save err:',e);});
+  db.collection('config').doc('allowedEmails').set({list:l}).then(function(){syncAllowed();}).catch(function(e){console.log('save err:',e);});
   try{localStorage.setItem('vf_e',JSON.stringify(l));}catch(e){}
 }
 
@@ -132,19 +155,14 @@ auth.onAuthStateChanged(function(user){
     if(email===ADMIN_EMAIL.toLowerCase()){
       sessionStorage.setItem('vf_ok',email);
       S.isAdmin=true; S.screen='admin'; S.loginMsg='';
-      loadEmails(function(){ render(); });
+      loadEmails(function(){ syncAllowed(); render(); });
       return;
     }
     S.isAdmin=false;
     var cached=sessionStorage.getItem('vf_ok');
     if(cached===email){S.screen='home';render();return;}
     S.loginMsg='✅ Google 로그인 완료! 확인 중...';render();
-    loadEmails(function(){
-      var found=false;
-      for(var i=0;i<S.emails.length;i++){
-        var em=typeof S.emails[i]==='object'?S.emails[i].email:S.emails[i];
-        if(em.toLowerCase()===email){found=true;break;}
-      }
+    checkAllowed(email,function(found){
       if(found){
         sessionStorage.setItem('vf_ok',email);
         S.screen='home';S.loginMsg='';
@@ -191,7 +209,9 @@ function addEmail(){
 }
 function removeEmail(em){
   var l=S.emails.filter(function(x){var xe=typeof x==='object'?x.email:x;return xe!==em;});
-  saveEmails(l);render();
+  saveEmails(l);
+  db.collection('fullcareAllowed').doc(String(em||'').trim().toLowerCase()).delete().catch(function(e){console.log('remove err:',e);});
+  render();
 }
 function loadProgress(){
   set({progressLoading:true});
